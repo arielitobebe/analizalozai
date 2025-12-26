@@ -1,0 +1,61 @@
+ARCHIVO: server\routes\clientes-notas.routes.js
+================================================================================
+
+const express = require('express');
+const router = express.Router();
+const db = require('../db');
+const { v4: uuidv4 } = require('uuid');
+
+// Get all notes for a client
+router.get('/:cliente_id/notas', (req, res) => {
+    const { cliente_id } = req.params;
+    const query = `
+        SELECT n.*, u.nombre as autor_nombre, u.apellido as autor_apellido 
+        FROM clientes_notas n
+        LEFT JOIN usuarios_equipo u ON n.autor_id = u.id
+        WHERE n.cliente_id = ?
+        ORDER BY n.fecha DESC
+    `;
+
+    db.all(query, [cliente_id], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows);
+    });
+});
+
+// Create note for client
+router.post('/:cliente_id/notas', (req, res) => {
+    const { cliente_id } = req.params;
+    const { tipo, titulo, contenido, autor_id } = req.body;
+
+    const id = uuidv4();
+    const query = `INSERT INTO clientes_notas (id, cliente_id, tipo, titulo, contenido, autor_id) VALUES (?, ?, ?, ?, ?, ?)`;
+
+    db.run(query, [id, cliente_id, tipo || 'nota', titulo, contenido, autor_id || 'SYSTEM'], function (err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.status(201).json({ id, message: 'Nota creada' });
+    });
+});
+
+// Update note
+router.put('/:cliente_id/notas/:nota_id', (req, res) => {
+    const { nota_id } = req.params;
+    const { titulo, contenido } = req.body;
+
+    db.run('UPDATE clientes_notas SET titulo = ?, contenido = ? WHERE id = ?', [titulo, contenido, nota_id], function (err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ message: 'Nota actualizada' });
+    });
+});
+
+// Delete note
+router.delete('/:cliente_id/notas/:nota_id', (req, res) => {
+    const { nota_id } = req.params;
+
+    db.run('DELETE FROM clientes_notas WHERE id = ?', [nota_id], function (err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ message: 'Nota eliminada' });
+    });
+});
+
+module.exports = router;

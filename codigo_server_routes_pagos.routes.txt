@@ -1,0 +1,39 @@
+ARCHIVO: server\routes\pagos.routes.js
+================================================================================
+
+const express = require('express');
+const router = express.Router();
+const db = require('../db');
+const { v4: uuidv4 } = require('uuid');
+
+// Get payment history for a client
+router.get('/:id/pagos', (req, res) => {
+    const { id } = req.params;
+    db.all('SELECT * FROM pagos_clientes WHERE cliente_id = ? ORDER BY fecha DESC', [id], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows);
+    });
+});
+
+// Register a new payment
+router.post('/:id/pagos', (req, res) => {
+    const { id: cliente_id } = req.params;
+    const { monto, metodo, concepto } = req.body;
+    const pagoId = uuidv4();
+
+    const query = `INSERT INTO pagos_clientes (id, cliente_id, monto, metodo, concepto) VALUES (?, ?, ?, ?, ?)`;
+
+    db.run(query, [pagoId, cliente_id, monto, metodo, concepto], function (err) {
+        if (err) return res.status(500).json({ error: err.message });
+
+        // Update cliente's paid amount
+        db.run('UPDATE clientes SET monto_pagado = monto_pagado + ?, monto_pendiente = monto_pendiente - ? WHERE id = ?',
+            [monto, monto, cliente_id], (err) => {
+                if (err) console.error('Error updating client balance:', err);
+            });
+
+        res.status(201).json({ id: pagoId, message: 'Pago registrado' });
+    });
+});
+
+module.exports = router;

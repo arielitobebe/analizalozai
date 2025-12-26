@@ -1,0 +1,313 @@
+ARCHIVO: server\routes\nebula.js
+================================================================================
+
+const express = require('express');
+const router = express.Router();
+const Scraper = require('../services/scraper');
+const RateLimiter = require('../services/rate-limiter');
+const db = require('../db');
+const { v4: uuidv4 } = require('uuid');
+
+// ==========================================
+// 1. BUSCAR (Con Rate Limiting)
+// ==========================================
+router.post('/search', async (req, res) => {
+    try {
+        const { query, delegacion, categoria } = req.body;
+        const userId = 'admin'; // TODO: Obtener del token JWT
+
+        console.log('[Nebula API] ========== NUEVA BÚSQUEDA ==========');
+        console.log('[Nebula API] Parámetros recibidos:', { query, delegacion, categoria });
+
+        // 1. VERIFICAR LÍMITE DIARIO (NUEVO)
+        const dailyCheck = await RateLimiter.checkDailyLimit(userId);
+        console.log('[Nebula API] Daily check:', dailyCheck);
+        if (!dailyCheck.allowed) {
+            console.log(`[Nebula] ❌ Límite diario excedido: ${dailyCheck.message}`);
+            return res.status(429).json({
+                success: false,
+                message: dailyCheck.message,
+                reason: dailyCheck.reason,
+                userSearches: dailyCheck.userSearches,
+                teamSearches: dailyCheck.teamSearches
+            });
+        }
+
+        // 2. Verificar cooldown
+        const check = await RateLimiter.checkCooldown(userId);
+        console.log('[Nebula API] Cooldown check:', check);
+        if (!check.allowed) {
+            return res.status(429).json({
+                success: false,
+                message: `Espera ${check.minutesLeft} minutos antes de la próxima búsqueda.`,
+                waitTime: check.waitTime,
+                minutesLeft: check.minutesLeft
+            });
+        }
+
+        console.log(`[Nebula] ✅ Iniciando búsqueda: "${query}"`);
+        console.log(`[Nebula] 📊 Búsquedas hoy: Usuario ${dailyCheck.userSearches}/${dailyCheck.maxUserSearches} | Equipo ${dailyCheck.teamSearches}/${dailyCheck.maxTeamSearches}`);
+
+        // 3. Realizar scraping
+        console.log('[Nebula API] Llamando a Scraper.searchGoogleMaps...');
+        const results = await Scraper.searchGoogleMaps(query, 3);
+        console.log(`[Nebula API] Scraper retornó ${results ? results.length : 0} resultados`);
+
+        if (!results || results.length === 0) {
+            console.log('[Nebula API] ⚠️ Sin resultados del scraper');
+            return res.json({ success: true, data: [], count: 0, message: 'No se encontraron resultados.' });
+        }
+
+        // 4. Guardar en DB
+        const insertQuery = `
+            INSERT OR REPLACE INTO leads_radar (
+                id, nombre, categoria, delegacion, direccion, telefono, website,
+                rating_google, tiene_web, tiene_facebook, tiene_instagram, tiene_tiktok,
+                analisis_ia, servicios_recomendados, score_oportunidad, prioridad, estado, 
+                maps_url, email, facebook_url, instagram_url, tiktok_url
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `;
+
+        // Guardar cada lead
+        for (const lead of results) {
+            try {
+                await new Promise((resolve, reject) => {
+                    db.run(insertQuery, [
+                        lead.id,
+                        lead.nombre,
+                        lead.categoria,
+                        lead.delegacion,
+                        lead.direccion,
+                        lead.telefono,
+                        lead.website,
+                        lead.rating_google,
+                        lead.tiene_web ? 1 : 0,
+                        lead.tiene_facebook ? 1 : 0,
+                        lead.tiene_instagram ? 1 : 0,
+                        lead.tiene_tiktok ? 1 : 0,
+                        lead.analisis_ia,
+                        JSON.stringify(lead.servicios_recomendados),
+                        lead.score_oportunidad,
+                        lead.prioridad,
+                        'new',
+                        lead.maps_url,
+                        lead.email || '',
+                        lead.facebook_url || '',
+                        lead.instagram_url || '',
+                        lead.tiktok_url || ''
+                    ], (err) => {
+                        if (err) {
+                            console.error('[Nebula] Error guardando lead:', err);
+                            reject(err);
+                        } else {
+                            resolve();
+                        }
+                    });
+                });
+            } catch (err) {
+                console.error(`[Nebula] Error en lead ${lead.nombre}:`, err.message);
+            }
+        }
+
+        // 5. Registrar búsqueda y cooldown
+        await RateLimiter.recordSearch(userId, delegacion, categoria, results.length);
+
+        console.log(`[Nebula] ✅ ${results.length} leads guardados exitosamente`);
+
+        res.json({
+            success: true,
+            count: results.length,
+            data: results,
+            cooldown: 420000 // 7 min en ms para el front
+        });
+
+    } catch (error) {
+        console.error('[API Nebula] Error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Ruta Legacy para compatibilidad (redirige a search)
+router.post('/test', (req, res) => {
+    res.redirect(307, '/api/nebula/search');
+});
+
+// ==========================================
+// 2. GUARDAR LEAD EN CRM
+// ==========================================
+router.post('/save/:id', (req, res) => {
+    const { id } = req.params;
+    console.log(`[Nebula Save] Intentando guardar lead: ${id}`);
+
+    // 1. Buscar lead en tabla leads_radar
+    db.get('SELECT * FROM leads_radar WHERE id = ?', [id], (err, radarLead) => {
+        if (err) {
+            console.error('[Nebula Save] Error DB:', err);
+            return res.status(500).json({ success: false, error: err.message });
+        }
+
+        if (!radarLead) {
+            console.error(`[Nebula Save] Lead no encontrado: ${id}`);
+            return res.status(404).json({ success: false, error: 'Lead no encontrado en radar.' });
+        }
+
+        console.log(`[Nebula Save] Lead encontrado:`, {
+            nombre: radarLead.nombre,
+            telefono: radarLead.telefono,
+            website: radarLead.website
+        });
+
+        // 2. Verificar si ya existe en CRM (por nombre para evitar duplicados obvios)
+        db.get('SELECT id FROM leads WHERE nombre = ?', [radarLead.nombre], (err, existing) => {
+            if (existing) {
+                return res.json({ success: false, message: 'Este lead ya existe en tu CRM.' });
+            }
+
+            // 3. Insertar en tabla LEADS real
+            const newLeadId = uuidv4();
+            const temp = radarLead.prioridad === 'high' ? 'caliente' : (radarLead.prioridad === 'medium' ? 'tibio' : 'frio');
+
+            // Construir notas SOLO con análisis e información adicional
+            let notas = `🧠 ANÁLISIS NEBULA:\n${radarLead.analisis_ia}\n\n`;
+
+            try {
+                const servicios = JSON.parse(radarLead.servicios_recomendados || '[]');
+                if (servicios.length > 0) {
+                    notas += `💡 Servicios Recomendados: ${servicios.join(', ')}\n\n`;
+                }
+            } catch (e) {
+                console.error('[Nebula Save] Error parsing servicios:', e);
+            }
+
+            notas += `⭐ Score de Oportunidad: ${radarLead.score_oportunidad}/100\n`;
+            notas += `📊 Rating Google: ${radarLead.rating_google}\n\n`;
+
+            // Agregar dirección y website a las notas ya que no hay columnas dedicadas
+            if (radarLead.direccion) notas += `📍 Dirección: ${radarLead.direccion}\n`;
+            if (radarLead.website) notas += `🌐 Website: ${radarLead.website}\n`;
+
+            const insertQuery = `INSERT INTO leads (
+                id, nombre, empresa, persona_encargada, correo_electronico, 
+                telefono, fuente, estatus, temperatura, notas
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+
+            console.log('[Nebula Save] Insertando lead con datos:', {
+                id: newLeadId,
+                nombre: radarLead.nombre,
+                email: radarLead.email || '',
+                telefono: radarLead.telefono || ''
+            });
+
+            db.run(insertQuery, [
+                newLeadId,
+                radarLead.nombre || 'Sin nombre',          // Nombre (Lead)
+                radarLead.nombre || 'Sin nombre',          // Empresa (mismo que nombre)
+                'Por contactar',                            // Persona encargada
+                radarLead.email || '',                      // EMAIL en su campo correcto
+                radarLead.telefono || '',                   // TELÉFONO en su campo correcto
+                'Nebula Radar',                             // Fuente
+                'nuevo',                                    // Estatus
+                temp,                                       // Temperatura
+                notas                                       // Notas con toda la info adicional
+            ], function (err) {
+                if (err) {
+                    console.error('[Nebula Save] Error SQL:', err);
+                    return res.status(500).json({ success: false, error: err.message });
+                }
+
+                console.log('[Nebula Save] Lead guardado exitosamente:', newLeadId);
+
+                // 4. Marcar en radar como guardado
+                db.run('UPDATE leads_radar SET guardado_crm = 1 WHERE id = ?', [id]);
+
+                res.json({ success: true, message: 'Lead guardado en CRM exitosamente.' });
+            });
+        });
+    });
+});
+
+// ==========================================
+// 3. CHECK COOLDOWN STATUS
+// ==========================================
+router.get('/status', async (req, res) => {
+    const userId = 'admin';
+    const check = await RateLimiter.checkCooldown(userId);
+    res.json(check);
+});
+
+// ==========================================
+// 4. GET LEAD HISTORY
+// ==========================================
+router.get('/history', (req, res) => {
+    db.all(`
+        SELECT 
+            id, nombre, categoria, delegacion, telefono, score_oportunidad,
+            COALESCE(fecha_creacion, CURRENT_TIMESTAMP) as fecha_creacion,
+            'admin' as usuario
+        FROM leads_radar 
+        ORDER BY rowid DESC 
+        LIMIT 500
+    `, (err, leads) => {
+        if (err) {
+            console.error('[Nebula History] Error:', err);
+            return res.json({ success: false, error: err.message });
+        }
+
+        res.json({ success: true, leads: leads || [] });
+    });
+});
+
+// ==========================================
+// 4. EXPORT A CSV
+// ==========================================
+router.get('/export-csv', (req, res) => {
+    db.all('SELECT * FROM leads_radar ORDER BY fecha_creacion DESC', (err, leads) => {
+        if (err) {
+            console.error('[Nebula Export] Error:', err);
+            return res.status(500).json({ error: err.message });
+        }
+
+        // Generar CSV
+        const headers = [
+            'Nombre', 'Categoría', 'Delegación', 'Colonia', 'Teléfono', 'Website',
+            'Facebook', 'Instagram', 'TikTok', 'Score', 'Rating', 'Tamaño',
+            'Análisis NOVA', 'Servicios Recomendados', 'Fecha Creación'
+        ];
+
+        const rows = leads.map(lead => {
+            let servicios = '';
+            try {
+                const parsed = JSON.parse(lead.servicios_recomendados || '[]');
+                servicios = Array.isArray(parsed) ? parsed.join('; ') : '';
+            } catch (e) {
+                servicios = lead.servicios_recomendados || '';
+            }
+
+            return [
+                lead.nombre || '',
+                lead.categoria || '',
+                lead.delegacion || '',
+                '', // Colonia (no se guarda actualmente)
+                lead.telefono || '',
+                lead.website || '',
+                lead.facebook_url || '',
+                lead.instagram_url || '',
+                lead.tiktok_url || '',
+                lead.score_oportunidad || 0,
+                lead.rating_google || 0,
+                lead.tamano_negocio || 'pequeño',
+                (lead.analisis_ia || '').replace(/"/g, '""'), // Escape comillas
+                servicios,
+                lead.fecha_creacion || ''
+            ].map(cell => `"${cell}"`).join(',');
+        });
+
+        const csv = [headers.join(','), ...rows].join('\n');
+
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        res.setHeader('Content-Disposition', `attachment; filename=nebula-leads-${new Date().toISOString().split('T')[0]}.csv`);
+        res.send('\uFEFF' + csv); // BOM para UTF-8
+    });
+});
+
+module.exports = router;

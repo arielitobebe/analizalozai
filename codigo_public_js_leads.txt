@@ -1,0 +1,733 @@
+ARCHIVO: public\js\leads.js
+================================================================================
+
+const Leads = {
+    sortables: [],
+
+    init() {
+        this.renderKanban();
+        this.fetchLeads();
+    },
+
+    async fetchLeads() {
+        try {
+            const response = await fetch('/api/leads');
+            const leads = await response.json();
+            this.distributeLeads(leads);
+            this.setupSortable();
+        } catch (error) {
+            UI.notify('Error al cargar leads', 'error');
+        }
+    },
+
+    distributeLeads(leads) {
+        document.querySelectorAll('.column-content').forEach(col => col.innerHTML = '');
+
+        leads.forEach(lead => {
+            const card = this.createLeadCard(lead);
+            const columnId = this.getColumnIdByStatus(lead.estatus);
+            const column = document.getElementById(columnId);
+            if (column) {
+                column.querySelector('.column-content').appendChild(card);
+            }
+        });
+
+        this.updateCounts();
+    },
+
+    createLeadCard(lead) {
+        const card = document.createElement('div');
+        card.className = 'card lead-card fade-in luxury-hover';
+        card.dataset.id = lead.id;
+
+        const tempColor = lead.temperatura === 'caliente' ? '#EF4444' :
+            lead.temperatura === 'tibio' ? '#F59E0B' : '#3B82F6';
+
+        card.innerHTML = `
+            <div class="lead-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <div class="lead-title" style="font-weight:700; font-size:0.95rem;">${lead.nombre}</div>
+                <div class="temp-indicator" style="width:10px; height:10px; border-radius:50%; background:${tempColor}; box-shadow:0 0 8px ${tempColor}60;"></div>
+            </div>
+            <div class="lead-company" style="font-size: 0.8rem; color: #64748b; margin: 8px 0; display:flex; align-items:center; gap:6px;">
+                <i class="fa-solid fa-building" style="font-size:0.7rem;"></i> ${lead.empresa || 'Prospecto Individual'}
+            </div>
+            <div class="lead-meta" style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; border-top:1px solid #f1f5f9; padding-top:10px;">
+                <span class="badge" style="font-size: 0.65rem; background:rgba(147,51,234,0.1); color:var(--primary-medium);">${(lead.fuente || 'Web').toUpperCase()}</span>
+                <div class="days-indicator" style="font-size:0.7rem; color:#94a3b8; display:flex; align-items:center; gap:4px;">
+                    <i class="fa-regular fa-clock"></i> <span>${this.getDaysAgo(lead.fecha_creacion)}</span>
+                </div>
+            </div>
+        `;
+
+        card.addEventListener('click', () => this.showDetails(lead.id));
+
+        return card;
+    },
+
+    getDaysAgo(dateString) {
+        if (!dateString) return '0d';
+        const created = new Date(dateString);
+        const now = new Date();
+        const diff = Math.floor((now - created) / (1000 * 60 * 60 * 24));
+        return diff + 'd';
+    },
+
+    getColumnIdByStatus(status) {
+        const mapping = {
+            'nuevo': 'col-new',
+            'contactado': 'col-contacted',
+            'en_seguimiento': 'col-followup',
+            'propuesta_enviada': 'col-proposal',
+            'en_negociacion': 'col-negotiation',
+            'ganado': 'col-won'
+        };
+        return mapping[status] || 'col-new';
+    },
+
+    setupSortable() {
+        this.sortables.forEach(s => s.destroy());
+        this.sortables = [];
+
+        document.querySelectorAll('.column-content').forEach(el => {
+            const sortable = new Sortable(el, {
+                group: 'leads',
+                animation: 250,
+                ghostClass: 'lead-ghost',
+                chosenClass: 'lead-chosen',
+                dragClass: 'lead-drag',
+                onEnd: async (evt) => {
+                    const leadId = evt.item.dataset.id;
+                    const newStatus = this.getStatusByColumnId(evt.to.parentElement.id);
+                    if (newStatus) {
+                        await this.updateLeadStatus(leadId, newStatus);
+                        this.updateCounts();
+                    }
+                }
+            });
+            this.sortables.push(sortable);
+        });
+    },
+
+    getStatusByColumnId(id) {
+        const mapping = {
+            'col-new': 'nuevo',
+            'col-contacted': 'contactado',
+            'col-followup': 'en_seguimiento',
+            'col-proposal': 'propuesta_enviada',
+            'col-negotiation': 'en_negociacion',
+            'col-won': 'ganado'
+        };
+        return mapping[id];
+    },
+
+    async updateLeadStatus(id, estatus) {
+        try {
+            await fetch(`/api/leads/${id}/status`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ estatus })
+            });
+            UI.notify('Estado del lead actualizado', 'success');
+        } catch (error) {
+            UI.notify('Error al actualizar estado', 'error');
+            this.fetchLeads();
+        }
+    },
+
+    updateCounts() {
+        document.querySelectorAll('.kanban-column').forEach(col => {
+            const count = col.querySelector('.column-content').children.length;
+            col.querySelector('.count').textContent = count;
+        });
+    },
+
+    renderKanban() {
+        const container = document.getElementById('module-content');
+        container.innerHTML = `
+            ${UI.renderHeader('LEADS', {
+            hideSearch: true,
+            moduleTitle: 'Pipeline de Leads',
+            description: 'Gestiona y convierte prospectos en clientes de manera eficiente.',
+            actionButton: `<button class="btn btn-primary" onclick="Leads.showCreateModal()">
+                    <i class="fa-solid fa-plus"></i> Nuevo Prospecto
+                </button>`
+        })}
+            <script>setTimeout(() => MotivationalQuotes.init(), 50);</script>
+            <div class="kanban-board-wrapper" style="display:flex; gap:20px; margin-top:25px; overflow-x:auto; padding-bottom:20px;">
+                <div class="kanban-column" id="col-new" style="flex:1; min-width:280px; background:#f8fafc; border-radius:16px; padding:15px;">
+                    <div class="column-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; padding:12px 16px; background:linear-gradient(135deg, #00b4d8, #ec4899); border-radius:12px; box-shadow:0 4px 12px rgba(0,180,216,0.3);">
+                        <span style="color:white; font-weight:700; font-size:0.95rem;">Nuevos</span>
+                        <span class="count badge" style="background:rgba(255,255,255,0.25); color:white; font-weight:700; padding:4px 12px; border-radius:8px;">0</span>
+                    </div>
+                    <div class="column-content" style="display:flex; flex-direction:column; gap:12px; min-height:400px;"></div>
+                </div>
+                <div class="kanban-column" id="col-contacted" style="flex:1; min-width:280px; background:#f8fafc; border-radius:16px; padding:15px;">
+                    <div class="column-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; padding:12px 16px; background:linear-gradient(135deg, #3b82f6, #8b5cf6); border-radius:12px; box-shadow:0 4px 12px rgba(59,130,246,0.3);">
+                        <span style="color:white; font-weight:700; font-size:0.95rem;">Contactados</span>
+                        <span class="count badge" style="background:rgba(255,255,255,0.25); color:white; font-weight:700; padding:4px 12px; border-radius:8px;">0</span>
+                    </div>
+                    <div class="column-content" style="display:flex; flex-direction:column; gap:12px; min-height:400px;"></div>
+                </div>
+                <div class="kanban-column" id="col-followup" style="flex:1; min-width:280px; background:#f8fafc; border-radius:16px; padding:15px;">
+                    <div class="column-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; padding:12px 16px; background:linear-gradient(135deg, #f59e0b, #f97316); border-radius:12px; box-shadow:0 4px 12px rgba(245,158,11,0.3);">
+                        <span style="color:white; font-weight:700; font-size:0.95rem;">Seguimiento</span>
+                        <span class="count badge" style="background:rgba(255,255,255,0.25); color:white; font-weight:700; padding:4px 12px; border-radius:8px;">0</span>
+                    </div>
+                    <div class="column-content" style="display:flex; flex-direction:column; gap:12px; min-height:400px;"></div>
+                </div>
+                <div class="kanban-column" id="col-proposal" style="flex:1; min-width:280px; background:#f8fafc; border-radius:16px; padding:15px;">
+                    <div class="column-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; padding:12px 16px; background:linear-gradient(135deg, #8b5cf6, #ec4899); border-radius:12px; box-shadow:0 4px 12px rgba(139,92,246,0.3);">
+                        <span style="color:white; font-weight:700; font-size:0.95rem;">Propuesta</span>
+                        <span class="count badge" style="background:rgba(255,255,255,0.25); color:white; font-weight:700; padding:4px 12px; border-radius:8px;">0</span>
+                    </div>
+                    <div class="column-content" style="display:flex; flex-direction:column; gap:12px; min-height:400px;"></div>
+                </div>
+                <div class="kanban-column" id="col-won" style="flex:1; min-width:280px; background:#f8fafc; border-radius:16px; padding:15px;">
+                    <div class="column-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; padding:12px 16px; background:linear-gradient(135deg, #10b981, #34d399); border-radius:12px; box-shadow:0 4px 12px rgba(16,185,129,0.3);">
+                        <span style="color:white; font-weight:700; font-size:0.95rem;">Ganados</span>
+                        <span class="count badge" style="background:rgba(255,255,255,0.25); color:white; font-weight:700; padding:4px 12px; border-radius:8px;">0</span>
+                    </div>
+                    <div class="column-content" style="display:flex; flex-direction:column; gap:12px; min-height:400px;"></div>
+                </div>
+            </div>
+                </div>
+            </div>
+        `;
+        // Initialize quotes
+        if (window.MotivationalQuotes) {
+            setTimeout(() => window.MotivationalQuotes.init(), 100);
+        }
+    },
+
+    async showDetails(id) {
+        try {
+            const res = await fetch('/api/leads');
+            const leads = await res.json();
+            const lead = leads.find(l => l.id == id);
+
+            // Fetch interactions
+            const intRes = await fetch(`/api/leads/${id}/interacciones`);
+            const interactions = await intRes.json();
+
+            // DETECTAR SI ES LEAD DE NEBULA
+            const isNebulaLead = lead.fuente === 'Nebula Radar' || lead.fuente === 'NEBULA RADAR';
+
+            let detailsHTML = '';
+
+            if (isNebulaLead) {
+                // MODAL ESTRUCTURADO PARA LEADS DE NEBULA
+                // Parsear servicios recomendados si están en JSON
+                let serviciosArray = [];
+                try {
+                    serviciosArray = JSON.parse(lead.notas || '[]');
+                    if (!Array.isArray(serviciosArray)) {
+                        // Si no es array, intentar extraer del análisis
+                        serviciosArray = [];
+                    }
+                } catch (e) {
+                    // Si falla el parse, intentar extraer del notas
+                    const match = lead.notas?.match(/Servicios Recomendados:\s*(.+?)(?:\n|$)/);
+                    if (match) {
+                        serviciosArray = match[1].split(',').map(s => s.trim());
+                    }
+                }
+
+                // Extraer análisis y rating del objeto lead
+                const analisisNOVA = lead.notas?.includes('ANÁLISIS NEBULA')
+                    ? lead.notas.split('Servicios Recomendados:')[0].replace('ANÁLISIS NEBULA:', '').trim()
+                    : lead.notas || 'Sin análisis disponible';
+
+                const scoreOportunidad = lead.temperatura === 'caliente' ? 85 : lead.temperatura === 'tibio' ? 60 : 40;
+                const ratingGoogle = 4.5; // Default, idealmente debe venir del lead
+
+                detailsHTML = `
+                    <div style="background:#f8fafc; padding:20px; border-radius:12px; margin-bottom:20px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <h2 style="margin:0;">${lead.nombre}</h2>
+                            <span class="badge" style="background:#9333ea; color:white; padding:8px 16px;">
+                                <i class="fa-solid fa-rocket"></i> NEBULA RADAR
+                            </span>
+                        </div>
+                        <p style="color:var(--text-secondary); margin:5px 0 0 0;">${lead.empresa || 'Negocio Local'}</p>
+                    </div>
+
+                    <!-- SCORE DE OPORTUNIDAD -->
+                    <div style="background:linear-gradient(135deg, #6366f1, #8b5cf6); padding:20px; border-radius:12px; margin-bottom:20px; color:white;">
+                        <div style="display:flex; align-items:center; gap:20px;">
+                            <div style="width:80px; height:80px; border-radius:50%; background:rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center; font-size:2rem; font-weight:700;">
+                                ${scoreOportunidad}
+                            </div>
+                            <div style="flex:1;">
+                                <div style="font-size:0.85rem; opacity:0.9; margin-bottom:4px;">SCORE DE OPORTUNIDAD</div>
+                                <div style="font-size:1.1rem; font-weight:600;">${scoreOportunidad}/100 Puntos</div>
+                                <div style="margin-top:8px; display:flex; gap:8px;">
+                                    ${scoreOportunidad > 70 ? '<span style="background:rgba(255,255,255,0.3); padding:4px 12px; border-radius:20px; font-size:0.75rem;">🔥 Alta Prioridad</span>' : ''}
+                                    ${scoreOportunidad > 40 && scoreOportunidad <= 70 ? '<span style="background:rgba(255,255,255,0.3); padding:4px 12px; border-radius:20px; font-size:0.75rem;">⚡ Media Prioridad</span>' : ''}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- INFORMACIÓN DE CONTACTO -->
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom:20px;">
+                        ${ratingGoogle ? `
+                        <div style="background:#fff; padding:15px; border-radius:10px; border:1px solid #e2e8f0;">
+                            <label style="display:block; font-size:0.75rem; color:#64748b; margin-bottom:5px;">
+                                <i class="fa-solid fa-star" style="color:#f59e0b;"></i> Rating Google
+                            </label>
+                            <strong style="font-size:1.2rem; color:#1e293b;">${ratingGoogle} / 5.0</strong>
+                        </div>
+                        ` : ''}
+                        
+                        ${lead.telefono && lead.telefono !== 'No disponible' ? `
+                        <div style="background:#fff; padding:15px; border-radius:10px; border:1px solid #e2e8f0;">
+                            <label style="display:block; font-size:0.75rem; color:#64748b; margin-bottom:5px;">
+                                <i class="fa-solid fa-phone" style="color:#10b981;"></i> Teléfono
+                            </label>
+                            <strong style="font-size:1.1rem; color:#1e293b;">
+                                <a href="tel:${lead.telefono}" style="color:#1e293b; text-decoration:none;">${lead.telefono}</a>
+                            </strong>
+                        </div>
+                        ` : ''}
+                    </div>
+
+                    ${lead.direccion && lead.direccion !== 'N/D' ? `
+                    <div style="background:#fff; padding:15px; border-radius:10px; border:1px solid #e2e8f0; margin-bottom:20px;">
+                        <label style="display:block; font-size:0.75rem; color:#64748b; margin-bottom:8px;">
+                            <i class="fa-solid fa-location-dot" style="color:#ef4444;"></i> Dirección
+                        </label>
+                        <strong style="color:#1e293b;">${lead.direccion}</strong>
+                    </div>
+                    ` : ''}
+
+                    ${lead.website && lead.website !== 'N/D' ? `
+                    <div style="background:#fff; padding:15px; border-radius:10px; border:1px solid #e2e8f0; margin-bottom:20px;">
+                        <label style="display:block; font-size:0.75rem; color:#64748b; margin-bottom:8px;">
+                            <i class="fa-solid fa-globe" style="color:#3b82f6;"></i> Sitio Web
+                        </label>
+                        <a href="${lead.website}" target="_blank" style="color:#3b82f6; font-weight:600; text-decoration:none;">
+                            ${lead.website} <i class="fa-solid fa-external-link-alt" style="font-size:0.75rem;"></i>
+                        </a>
+                    </div>
+                    ` : ''}
+
+                    <!-- REDES SOCIALES -->
+                    <div style="background:#fff; padding:20px; border-radius:10px; border:1px solid #e2e8f0; margin-bottom:20px;">
+                        <label style="display:block; font-size:0.85rem; font-weight:600; color:#1e293b; margin-bottom:12px;">
+                            <i class="fa-solid fa-hashtag" style="color:#9333ea;"></i> Redes Sociales Detectadas
+                        </label>
+                        <div style="display:flex; gap:12px; flex-wrap:wrap;">
+                            <!-- Facebook -->
+                            <a href="#" target="_blank" style="display:inline-flex; align-items:center; gap:8px; padding:10px 16px; background:#1877f2; color:white; border-radius:8px; text-decoration:none; font-size:0.9rem;">
+                                <i class="fa-brands fa-facebook"></i> Facebook
+                            </a>
+                            <!-- Instagram -->
+                            <a href="#" target="_blank" style="display:inline-flex; align-items:center; gap:8px; padding:10px 16px; background:linear-gradient(45deg, #f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%); color:white; border-radius:8px; text-decoration:none; font-size:0.9rem;">
+                                <i class="fa-brands fa-instagram"></i> Instagram
+                            </a>
+                            <!-- TikTok -->
+                            <a href="#" target="_blank" style="display:inline-flex; align-items:center; gap:8px; padding:10px 16px; background:#000; color:white; border-radius:8px; text-decoration:none; font-size:0.9rem;">
+                                <i class="fa-brands fa-tiktok"></i> TikTok
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- ANÁLISIS NOVA -->
+                    <div style="background:linear-gradient(135deg, #f0f9ff, #e0f2fe); padding:20px; border-radius:12px; border:2px solid #0ea5e9; margin-bottom:20px;">
+                        <label style="display:block; font-size:0.9rem; font-weight:700; color:#0369a1; margin-bottom:12px;">
+                            <i class="fa-solid fa-brain" style="margin-right:8px;"></i> ANÁLISIS NOVA
+                        </label>
+                        <div style="color:#075985; line-height:1.6;">
+                            ${analisisNOVA}
+                        </div>
+                    </div>
+
+                    <!-- SERVICIOS RECOMENDADOS -->
+                    ${serviciosArray.length > 0 ? `
+                    <div style="background:#fff; padding:20px; border-radius:10px; border:1px solid #e2e8f0;">
+                        <label style="display:block; font-size:0.85rem; font-weight:600; color:#1e293b; margin-bottom:12px;">
+                            <i class="fa-solid fa-lightbulb" style="color:#f59e0b;"></i> Servicios NOVA Recomendados
+                        </label>
+                        <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                            ${serviciosArray.map(servicio => `
+                                <span style="background:linear-gradient(135deg, #9333ea, #6366f1); color:white; padding:8px 14px; border-radius:20px; font-size:0.8rem; font-weight:500;">
+                                    ${servicio}
+                                </span>
+                            `).join('')}
+                        </div>
+                    </div>
+                    ` : ''}
+                `;
+            } else {
+                // MODAL NORMAL PARA LEADS REGULARES
+                detailsHTML = `
+                    <div style="background:#f8fafc; padding:20px; border-radius:12px; margin-bottom:20px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <h2 style="margin:0;">${lead.nombre}</h2>
+                            <span class="badge" style="background:${lead.temperatura === 'caliente' ? 'var(--error)' : lead.temperatura === 'tibio' ? 'var(--warning)' : 'var(--info)'}; color:white;">${lead.temperatura.toUpperCase()}</span>
+                        </div>
+                        <p style="color:var(--text-secondary); margin:5px 0 0 0;">${lead.empresa || 'Prospecto Individual'}</p>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+                        <div class="info-group">
+                            <label style="display:block; font-size:0.75rem; color:var(--text-secondary); margin-bottom:5px;">Email</label>
+                            <strong style="display:block;">${lead.correo_electronico}</strong>
+                        </div>
+                        <div class="info-group">
+                            <label style="display:block; font-size:0.75rem; color:var(--text-secondary); margin-bottom:5px;">Teléfono</label>
+                            <strong style="display:block;">${lead.telefono || '--'}</strong>
+                        </div>
+                        <div class="info-group">
+                            <label style="display:block; font-size:0.75rem; color:var(--text-secondary); margin-bottom:5px;">Fuente</label>
+                            <strong style="display:block;">${lead.fuente || 'Desconocida'}</strong>
+                        </div>
+                        <div class="info-group">
+                            <label style="display:block; font-size:0.75rem; color:var(--text-secondary); margin-bottom:5px;">Creado el</label>
+                            <strong style="display:block;">${new Date(lead.fecha_creacion).toLocaleDateString()}</strong>
+                        </div>
+                    </div>
+
+                    <div style="margin-top:25px;">
+                        <label style="display:block; font-size:0.75rem; color:var(--text-secondary); margin-bottom:8px;">Notas Internas</label>
+                        <div style="padding:15px; background:#fff; border:1px solid #e2e8f0; border-radius:10px; font-size:0.9rem; min-height:80px;">
+                            ${lead.notas || 'Sin notas adicionales.'}
+                        </div>
+                    </div>
+                `;
+            }
+
+            const html = `
+                <div class="lead-detail-layout">
+                    <div class="tabs-header">
+                        <button class="tab-btn active" onclick="UI.tabs.switch(this, 'lead-info')">Detalle</button>
+                        <button class="tab-btn" onclick="UI.tabs.switch(this, 'lead-timeline')">Seguimiento (${interactions.length})</button>
+                        <button class="tab-btn" onclick="UI.tabs.switch(this, 'lead-files')">Archivos</button>
+                        <button class="tab-btn" onclick="UI.tabs.switch(this, 'lead-actions')">Acciones</button>
+                    </div>
+
+                    <div id="lead-info" class="tab-content active">
+                        ${detailsHTML}
+                    </div>
+
+                    <div id="lead-timeline" class="tab-content">
+                        <div style="background:#f8fafc; padding:20px; border-radius:12px; margin-bottom:25px;">
+                            <h4 style="margin:0 0 15px 0; font-size:0.95rem;">Registrar Nueva Interacción</h4>
+                            <div style="display:grid; grid-template-columns: 140px 1fr 60px; gap:10px;">
+                                <select id="int-type" class="form-select">
+                                    <option value="llamada">📞 Llamada</option>
+                                    <option value="email">📧 Email</option>
+                                    <option value="reunion">🤝 Reunión</option>
+                                    <option value="nota">📝 Nota</option>
+                                </select>
+                                <input type="text" id="int-desc" class="form-control" placeholder="Describe brevemente el contacto...">
+                                <button class="btn btn-primary" onclick="Leads.saveInteraction('${id}')"><i class="fa-solid fa-paper-plane"></i></button>
+                            </div>
+                        </div>
+
+                        <div id="timeline-container" style="display:flex; flex-direction:column; gap:20px;">
+                            ${interactions.length > 0 ? interactions.map(int => `
+                                <div class="timeline-item" style="display:flex; gap:15px;">
+                                    <div class="int-icon" style="width:40px; height:40px; border-radius:50%; background:${this.getIntColor(int.tipo)}; color:white; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                                        <i class="fa-solid ${this.getIntIcon(int.tipo)}"></i>
+                                    </div>
+                                    <div style="flex:1; background:#f8fafc; padding:15px; border-radius:12px; position:relative;">
+                                        <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                                            <strong style="text-transform:capitalize;">${int.tipo}</strong>
+                                            <small style="color:var(--text-secondary);">${new Date(int.fecha).toLocaleString()}</small>
+                                        </div>
+                                        <p style="margin:0; font-size:0.9rem;">${int.descripcion}</p>
+                                    </div>
+                                </div>
+                            `).join('') : '<p style="text-align:center; color:var(--text-secondary); padding:40px;">No hay interacciones registradas aún.</p>'}
+                        </div>
+                    </div>
+
+                    <div id="lead-files" class="tab-content">
+                        <div class="file-upload-zone" onclick="document.getElementById('lead-file-input-${id}').click()" style="text-align:center; padding:3rem; border:2px dashed #cbd5e1; border-radius:12px; cursor:pointer; margin-bottom:20px;">
+                            <i class="fa-solid fa-cloud-arrow-up" style="font-size:2.5rem; color:var(--primary-medium); margin-bottom:1rem; display:block;"></i>
+                            <p style="margin:0; font-weight:600;">Subir archivos del Prospecto</p>
+                            <input type="file" id="lead-file-input-${id}" style="display:none;" multiple onchange="Leads.handleFileUpload(event, '${id}')">
+                        </div>
+                        <div id="lead-files-list-${id}" style="display:flex; flex-direction:column; gap:10px;">
+                            <p class="text-muted text-center" style="padding:20px;">Cargando archivos...</p>
+                        </div>
+                    </div>
+
+                    <div id="lead-actions" class="tab-content">
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px;">
+                            <button class="btn btn-success" onclick="Leads.handleConvert('${id}')" style="padding:20px; flex-direction:column; gap:10px;">
+                                <i class="fa-solid fa-user-check" style="font-size:1.5rem;"></i>
+                                <span>Convertir a Cliente</span>
+                            </button>
+                            <button class="btn btn-primary" onclick="UI.notify('Correo enviado', 'success')" style="padding:20px; flex-direction:column; gap:10px;">
+                                <i class="fa-solid fa-paper-plane" style="font-size:1.5rem;"></i>
+                                <span>Enviar Presentación</span>
+                            </button>
+                            <button class="btn btn-secondary" onclick="UI.notify('Reunión agendada', 'info')" style="padding:20px; flex-direction:column; gap:10px;">
+                                <i class="fa-solid fa-calendar-plus" style="font-size:1.5rem;"></i>
+                                <span>Agendar Reunión</span>
+                            </button>
+                            <button class="btn btn-danger" onclick="UI.notify('Lead descartado', 'error')" style="padding:20px; flex-direction:column; gap:10px;">
+                                <i class="fa-solid fa-user-xmark" style="font-size:1.5rem;"></i>
+                                <span>Descartar Prospecto</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            UI.modal.show('Dashboard del Lead', html, `<button class="btn btn-secondary" onclick="UI.modal.hide()">Cerrar</button>`, true);
+
+            this.fetchLeadFiles(id);
+            this.fetchLeadTimeline(id);
+
+        } catch (e) { UI.notify('Error al cargar detalle', 'error'); }
+    },
+
+    getIntIcon(tipo) {
+        return tipo === 'llamada' ? 'fa-phone' : tipo === 'email' ? 'fa-envelope' : tipo === 'reunion' ? 'fa-handshake' : 'fa-note-sticky';
+    },
+
+    getIntColor(tipo) {
+        return tipo === 'llamada' ? '#3b82f6' : tipo === 'email' ? '#8b5cf6' : tipo === 'reunion' ? '#10b981' : '#f59e0b';
+    },
+
+    async saveInteraction(leadId) {
+        const tipo = document.getElementById('int-type').value;
+        const descripcion = document.getElementById('int-desc').value.trim();
+
+        if (!descripcion) return UI.notify('Describe la interacción', 'warning');
+
+        try {
+            // Save to old interactions table
+            await fetch(`/api/leads/${leadId}/interacciones`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tipo, descripcion })
+            });
+
+            // Also save to new seguimiento table
+            await fetch(`/api/leads/${leadId}/seguimiento`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tipo_accion: tipo, descripcion })
+            });
+
+            UI.notify('Interacción guardada', 'success');
+            this.showDetails(leadId);
+        } catch (e) { UI.notify('Error al guardar', 'error'); }
+    },
+
+    async fetchLeadFiles(leadId) {
+        try {
+            const res = await fetch(`/api/leads/${leadId}/archivos`);
+            const files = await res.json();
+            this.renderLeadFiles(leadId, files);
+        } catch (e) { }
+    },
+
+    renderLeadFiles(leadId, files) {
+        const container = document.getElementById(`lead-files-list-${leadId}`);
+        if (!container) return;
+
+        if (!files || files.length === 0) {
+            container.innerHTML = '<p class="text-muted text-center" style="padding:20px;">No hay archivos adjuntos.</p>';
+            return;
+        }
+
+        container.innerHTML = files.map(file => `
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; background:#f8fafc; border-radius:10px; border:1px solid #e2e8f0;">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <i class="fa-solid ${this.getFileIcon(file.tipo)}" style="font-size:1.2rem; color:var(--primary-medium);"></i>
+                    <div>
+                        <strong style="display:block; font-size:0.9rem;">${file.nombre}</strong>
+                        <small style="color:var(--text-secondary);">${(file.tamano / 1024).toFixed(2)} KB · ${new Date(file.fecha_subida).toLocaleDateString()}</small>
+                    </div>
+                </div>
+                <div style="display:flex; gap:8px;">
+                    <a href="${file.url}" target="_blank" class="btn btn-secondary btn-sm"><i class="fa-solid fa-download"></i></a>
+                    <button class="btn btn-danger btn-sm" onclick="Leads.deleteLeadFile('${leadId}', '${file.id}')"><i class="fa-solid fa-trash"></i></button>
+                </div>
+            </div>
+        `).join('');
+    },
+
+    getFileIcon(tipo) {
+        if (tipo.includes('pdf')) return 'fa-file-pdf';
+        if (tipo.includes('image')) return 'fa-file-image';
+        if (tipo.includes('word') || tipo.includes('document')) return 'fa-file-word';
+        if (tipo.includes('excel') || tipo.includes('spreadsheet')) return 'fa-file-excel';
+        return 'fa-file';
+    },
+
+    async handleFileUpload(event, leadId) {
+        const files = event.target.files;
+        if (!files || files.length === 0) return;
+
+        for (let i = 0; i < files.length; i++) {
+            const formData = new FormData();
+            formData.append('file', files[i]);
+
+            try {
+                const res = await fetch(`/api/leads/${leadId}/archivos`, { method: 'POST', body: formData });
+                if (res.ok) {
+                    UI.notify(`✅ ${files[i].name} subido`, 'success');
+                } else {
+                    UI.notify(`Error al subir ${files[i].name}`, 'error');
+                }
+            } catch (e) {
+                UI.notify('Error de conexión', 'error');
+            }
+        }
+
+        this.fetchLeadFiles(leadId);
+        event.target.value = '';
+    },
+
+    async deleteLeadFile(leadId, archivoId) {
+        if (!confirm('¿Eliminar archivo?')) return;
+        try {
+            await fetch(`/api/leads/${leadId}/archivos/${archivoId}`, { method: 'DELETE' });
+            UI.notify('Archivo eliminado', 'success');
+            this.fetchLeadFiles(leadId);
+        } catch (e) {
+            UI.notify('Error al eliminar', 'error');
+        }
+    },
+
+    async fetchLeadTimeline(leadId) {
+        try {
+            const res = await fetch(`/api/leads/${leadId}/seguimiento`);
+            const timeline = await res.json();
+            this.renderLeadTimeline(leadId, timeline);
+        } catch (e) { }
+    },
+
+    renderLeadTimeline(leadId, timeline) {
+        const container = document.getElementById('timeline-container');
+        if (!container) return;
+
+        if (!timeline || timeline.length === 0) {
+            container.innerHTML = '<p class="text-muted text-center" style="padding:40px;">Sin historial de seguimiento adicional.</p>';
+            return;
+        }
+
+        // Combine old interactions with new timeline
+        const additionalHTML = timeline.map(item => `
+            <div class="timeline-item" style="display:flex; gap:15px; margin-top:15px; padding-top:15px; border-top:1px solid #e2e8f0;">
+                <div class="int-icon" style="width:40px; height:40px; border-radius:50%; background:var(--success); color:white; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                </div>
+                <div style="flex:1; background:#f8fafc; padding:15px; border-radius:12px;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                        <strong style="text-transform:capitalize; color:var(--success);">${item.tipo_accion}</strong>
+                        <small style="color:var(--text-secondary);">${new Date(item.fecha).toLocaleString()}</small>
+                    </div>
+                    <p style="margin:0; font-size:0.9rem;">${item.descripcion}</p>
+                    ${item.author_nombre ? `<small style="display:block; margin-top:5px; color:#64748b;">— ${item.author_nombre}</small>` : ''}
+                </div>
+            </div>
+        `).join('');
+
+        container.insertAdjacentHTML('beforeend', additionalHTML);
+    },
+
+    showCreateModal() {
+        const html = `
+            <form id="lead-form">
+                <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:15px;">
+                    <div class="form-group">
+                        <label>Nombre del Prospecto <span style="color:var(--error);">*</span></label>
+                        <input type="text" name="nombre" class="form-control" required placeholder="Ej: Juan Pérez">
+                    </div>
+                    <div class="form-group">
+                        <label>Empresa / Marca</label>
+                        <input type="text" name="empresa" class="form-control" placeholder="Ej: NovaDex">
+                    </div>
+                </div>
+                <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-top:15px;">
+                    <div class="form-group">
+                        <label>Email de Contacto <span style="color:var(--error);">*</span></label>
+                        <input type="email" name="correo_electronico" class="form-control" required placeholder="juan@ejemplo.com">
+                    </div>
+                    <div class="form-group">
+                        <label>Teléfono</label>
+                        <input type="text" name="telefono" class="form-control" placeholder="+52 ...">
+                    </div>
+                </div>
+                <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-top:15px;">
+                    <div class="form-group">
+                        <label>Fuente del Lead</label>
+                        <select name="fuente" class="form-select">
+                            <option value="Web">Sitio Web</option>
+                            <option value="Referido">Referido</option>
+                            <option value="Social">Redes Sociales</option>
+                            <option value="Publicidad">Publicidad Pagada</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Temperatura Inicial</label>
+                        <select name="temperatura" class="form-select">
+                            <option value="tibio">Tibio 🟡</option>
+                            <option value="caliente">Caliente 🔥</option>
+                            <option value="frio">Frío ❄️</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group" style="margin-top:15px;">
+                    <label>Notas de Prospección</label>
+                    <textarea name="notas" class="form-control" rows="3" placeholder="¿Qué necesita el prospecto?"></textarea>
+                </div>
+            </form>
+        `;
+        UI.modal.show('Capturar Nuevo Lead', html, `
+            <button class="btn btn-secondary" onclick="UI.modal.hide()">Cancelar</button>
+            <button class="btn btn-primary" onclick="Leads.handleSave()"><i class="fa-solid fa-floppy-disk"></i> Crear Lead</button>
+        `);
+    },
+
+    async handleSave() {
+        const form = document.getElementById('lead-form');
+        if (!form.reportValidity()) return;
+        const data = Object.fromEntries(new FormData(form).entries());
+        data.estatus = 'nuevo';
+
+        try {
+            const res = await fetch('/api/leads', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            if (res.ok) {
+                UI.notify('✅ Lead registrado exitosamente', 'success');
+                UI.modal.hide();
+                this.fetchLeads();
+            }
+        } catch (e) { UI.notify('Error de conexión', 'error'); }
+    },
+
+    async handleConvert(id) {
+        if (!confirm('¿Estás seguro de convertir este prospecto en cliente activo?')) return;
+        try {
+            const res = await fetch(`/api/leads/${id}/convert`, { method: 'POST' });
+            if (res.ok) {
+                const data = await res.json();
+                UI.notify('🚀 ¡Cliente creado con éxito!', 'success');
+                UI.modal.hide();
+
+                // Refresh leads
+                this.fetchLeads();
+
+                // Advanced UX: Switch to Clients module and manage the new client
+                setTimeout(() => {
+                    location.hash = '#clientes';
+                    // We need a way to trigger the "Manage" modal after clients load
+                    localStorage.setItem('auto_manage_client', data.clientId);
+                }, 800);
+            }
+        } catch (e) { UI.notify('Error en la conversión', 'error'); }
+    }
+};
+
+window.Leads = Leads;

@@ -1,0 +1,139 @@
+ARCHIVO: server\services\rate-limiter.js
+================================================================================
+
+const db = require('../db');
+
+// Configuración actualizada: 7 minutos entre búsquedas
+const COOLDOWN_MINUTES = 7;
+const COOLDOWN_MS = COOLDOWN_MINUTES * 60 * 1000;
+
+// Límites diarios
+const MAX_DAILY_SEARCHES_USER = 15; // Por usuario
+const MAX_DAILY_SEARCHES_TEAM = 40; // Total del equipo
+
+const RateLimiter = {
+    // Verificar límite diario de búsquedas
+    checkDailyLimit: (userId = 'admin') => {
+        return new Promise((resolve, reject) => {
+            const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+
+            // Contar búsquedas del usuario hoy
+            db.get(
+                `SELECT COUNT(*) as count FROM search_history 
+                 WHERE usuario_id = ? AND DATE(fecha_busqueda) = DATE('now')`,
+                [userId],
+                (err, row) => {
+                    if (err) return reject(err);
+
+                    const userSearches = row.count || 0;
+
+                    if (userSearches >= MAX_DAILY_SEARCHES_USER) {
+                        return resolve({
+                            allowed: false,
+                            reason: 'user_limit',
+                            message: `Límite diario alcanzado (${userSearches}/${MAX_DAILY_SEARCHES_USER}). Intenta mañana.`,
+                            userSearches,
+                            maxUserSearches: MAX_DAILY_SEARCHES_USER
+                        });
+                    }
+
+                    // Contar búsquedas totales del equipo hoy
+                    db.get(
+                        `SELECT COUNT(*) as count FROM search_history 
+                         WHERE DATE(fecha_busqueda) = DATE('now')`,
+                        [],
+                        (err, teamRow) => {
+                            if (err) return reject(err);
+
+                            const teamSearches = teamRow.count || 0;
+
+                            if (teamSearches >= MAX_DAILY_SEARCHES_TEAM) {
+                                return resolve({
+                                    allowed: false,
+                                    reason: 'team_limit',
+                                    message: `Límite del equipo alcanzado (${teamSearches}/${MAX_DAILY_SEARCHES_TEAM}). Intenta mañana.`,
+                                    teamSearches,
+                                    maxTeamSearches: MAX_DAILY_SEARCHES_TEAM
+                                });
+                            }
+
+                            resolve({
+                                allowed: true,
+                                userSearches,
+                                teamSearches,
+                                maxUserSearches: MAX_DAILY_SEARCHES_USER,
+                                maxTeamSearches: MAX_DAILY_SEARCHES_TEAM
+                            });
+                        }
+                    );
+                }
+            );
+        });
+    },
+
+    checkCooldown: (userId = 'admin') => {
+        return new Promise((resolve, reject) => {
+            db.get(
+                'SELECT fecha_busqueda FROM search_history WHERE usuario_id = ? ORDER BY fecha_busqueda DESC LIMIT 1',
+                [userId],
+                (err, row) => {
+                    if (err) {
+                        return reject(err);
+                    }
+
+                    if (!row) {
+                        // Nunca ha buscado, pase
+                        return resolve({ allowed: true, waitTime: 0 });
+                    }
+
+                    const lastSearchTime = new Date(row.fecha_busqueda + 'Z').getTime(); // Asegurar UTC
+                    // Nota: SQLite guarda fechas en string 'YYYY-MM-DD HH:MM:SS'. 
+                    // Si se guardó como CURRENT_TIMESTAMP es UTC.
+
+                    const now = Date.now();
+                    // Ajuste zona horaria si fuera necesario, pero asumiendo server time consistente.
+                    // Para simplificar, revisamos diferencia.
+
+                    // Mejor aproximación: Date.parse(row.fecha_busqueda)
+                    // Si el string no tiene Z, JS lo asume local o UTC dependiendo navegador/node.
+                    // Vamos a confiar en la diferencia de tiempo relativa.
+
+                    // Hack seguro: Comparar timestamps de DB
+                    const timeDiff = now - new Date(row.fecha_busqueda).getTime();
+
+                    // Si la diferencia es rara (negativa), resetear
+                    if (timeDiff < 0) {
+                        return resolve({ allowed: true, waitTime: 0 });
+                    }
+
+                    if (timeDiff < COOLDOWN_MS) {
+                        const waitTime = COOLDOWN_MS - timeDiff;
+                        return resolve({
+                            allowed: false,
+                            waitTime: Math.ceil(waitTime), // ms
+                            minutesLeft: Math.ceil(waitTime / 60000)
+                        });
+                    }
+
+                    resolve({ allowed: true, waitTime: 0 });
+                }
+            );
+        });
+    },
+
+    logSearch: (userId, delegacion, categoria, numResultados) => {
+        return new Promise((resolve, reject) => {
+            const id = Date.now().toString(); // Simple ID
+            db.run(
+                `INSERT INTO search_history (id, usuario_id, delegacion, categoria, num_resultados, fecha_busqueda) VALUES (?, ?, ?, ?, ?, datetime('now'))`,
+                [id, userId, delegacion, categoria, numResultados],
+                (err) => {
+                    if (err) reject(err);
+                    else resolve();
+                }
+            );
+        });
+    }
+};
+
+module.exports = RateLimiter;

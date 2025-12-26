@@ -1,0 +1,547 @@
+ARCHIVO: public\js\finance.js
+================================================================================
+
+const Finance = {
+    myChartInOut: null,
+    myChartCategories: null,
+
+    init() {
+        this.renderView();
+        this.fetchData();
+    },
+
+    async fetchData() {
+        try {
+            const [summary, transactions] = await Promise.all([
+                fetch('/api/finanzas/summary').then(r => r.json()).catch(() => ({ ingresos: 0, egresos: 0, balance: 0 })),
+                fetch('/api/finanzas/transactions').then(r => r.json()).catch(() => [])
+            ]);
+            this.updateSummary(summary);
+            this.renderTransactions(transactions);
+            this.renderCharts(summary, transactions);
+        } catch (error) {
+            console.error('Finance error:', error);
+            UI.notify('Error al cargar datos financieros', 'error');
+        }
+    },
+
+    updateSummary(summary) {
+        document.getElementById('stat-income').textContent = `$${summary.ingresos.toLocaleString('es-MX')}`;
+        document.getElementById('stat-expense').textContent = `$${summary.egresos.toLocaleString('es-MX')}`;
+        document.getElementById('stat-balance').textContent = `$${summary.balance.toLocaleString('es-MX')}`;
+
+        const balanceIndicator = document.getElementById('balance-indicator');
+        if (balanceIndicator) {
+            balanceIndicator.style.background = summary.balance >= 0 ? 'linear-gradient(90deg, var(--success), #34d399)' : 'linear-gradient(90deg, var(--error), #f87171)';
+            balanceIndicator.style.width = '100%';
+        }
+    },
+
+    renderCharts(summary, transactions) {
+        // Destroy existing charts
+        if (this.myChartInOut) this.myChartInOut.destroy();
+        if (this.myChartCategories) this.myChartCategories.destroy();
+
+        // Chart 1: Income vs Expenses (Donut)
+        const ctxDonut = document.getElementById('financeChartDonut');
+        if (ctxDonut) {
+            this.myChartInOut = new Chart(ctxDonut, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Ingresos', 'Egresos'],
+                    datasets: [{
+                        data: [summary.ingresos, summary.egresos],
+                        backgroundColor: ['#10B981', '#EF4444'],
+                        borderWidth: 3,
+                        borderColor: '#fff',
+                        hoverOffset: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                font: { size: 13, weight: 600 },
+                                padding: 15
+                            }
+                        }
+                    },
+                    cutout: '65%'
+                }
+            });
+        }
+
+        // Chart 2: Expenses by Category (Bar)
+        const categories = {};
+        transactions.filter(t => t.tipo === 'egreso').forEach(t => {
+            categories[t.categoria] = (categories[t.categoria] || 0) + t.monto;
+        });
+
+        const ctxBar = document.getElementById('financeChartBar');
+        if (ctxBar && Object.keys(categories).length > 0) {
+            this.myChartCategories = new Chart(ctxBar, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(categories),
+                    datasets: [{
+                        label: 'Gastos por Categoría',
+                        data: Object.values(categories),
+                        backgroundColor: 'rgba(147, 51, 234, 0.7)',
+                        borderColor: 'rgba(147, 51, 234, 1)',
+                        borderWidth: 2,
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: '#f1f5f9' }
+                        },
+                        x: {
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        }
+    },
+
+    renderTransactions(transactions) {
+        const tbody = document.getElementById('finance-tbody');
+        if (!transactions || transactions.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" style="padding:60px; text-align:center; color:var(--text-secondary);"><i class="fa-solid fa-money-bill-trend-up" style="font-size:3rem; opacity:0.2; margin-bottom:15px; display:block;"></i>No hay transacciones registradas</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = transactions.slice(0, 10).map(t => `
+            <tr style="border-bottom:1px solid #f1f5f9;">
+                <td style="padding:15px;">
+                    <div class="date-display" style="display:flex; flex-direction:column; align-items:center; background:#f8fafc; border-radius:8px; padding:8px; width:50px;">
+                        <span style="font-size:1.2rem; font-weight:700; line-height:1;">${new Date(t.fecha).getDate()}</span>
+                        <span style="font-size:0.7rem; color:var(--text-secondary); text-transform:uppercase;">${new Date(t.fecha).toLocaleString('es', { month: 'short' })}</span>
+                    </div>
+                </td>
+                <td style="padding:15px;">
+                    <div>
+                        <strong style="display:block; margin-bottom:3px;">${t.concepto}</strong>
+                        <small style="color:var(--text-secondary);">${t.categoria || 'General'}</small>
+                    </div>
+                </td>
+                <td style="padding:15px; text-align:center;">
+                    <span class="type-badge ${t.tipo}" style="padding:4px 12px; border-radius:6px; font-size:0.7rem; font-weight:700; background:${t.tipo === 'ingreso' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)'}; color:${t.tipo === 'ingreso' ? 'var(--success)' : 'var(--error)'};">
+                        ${t.tipo.toUpperCase()}
+                    </span>
+                </td>
+                <td style="padding:15px; text-align:right;">
+                    <span style="font-size:1.1rem; font-weight:700; color:${t.tipo === 'ingreso' ? 'var(--success)' : 'var(--error)'};">
+                        ${t.tipo === 'ingreso' ? '+' : '-'}$${t.monto.toLocaleString('es-MX')}
+                    </span>
+                </td>
+            </tr>
+        `).join('');
+    },
+
+    renderView() {
+        const container = document.getElementById('module-content');
+        container.innerHTML = `
+            ${UI.renderHeader('FINANZAS', {
+            hideSearch: true,
+            hideDateQuote: true,
+            actionButton: `<div style="display:flex; gap:10px;">
+                    <button class="btn btn-secondary" onclick="Finance.exportReport()">
+                        <i class="fa-solid fa-file-export"></i> Exportar
+                    </button>
+                    <button class="btn btn-secondary" onclick="Finance.showRecurringModal()">
+                        <i class="fa-solid fa-repeat"></i> Gastos Recurrentes
+                    </button>
+                    <button class="btn btn-info" onclick="Finance.showPayrollModal()">
+                        <i class="fa-solid fa-users-gear"></i> Nómina
+                    </button>
+                    <button class="btn btn-primary" onclick="Finance.showAddTransaction()">
+                        <i class="fa-solid fa-plus"></i> Registrar Movimiento
+                    </button>
+                </div>`
+        })}
+
+            <!-- DASHBOARD GRID -->
+            <div class="finance-grid" style="display:grid; grid-template-columns:repeat(3, 1fr); gap:20px; margin-top:25px;">
+                
+                <!-- KPI CARDS -->
+                <div class="card stat-card-modern" style="background:linear-gradient(135deg, #10b981, #34d399); color:white; padding:25px; border-radius:16px; box-shadow:0 8px 20px rgba(16, 185, 129, 0.3);">
+                    <div style="display:flex; align-items:center; gap:15px;">
+                        <div style="width:60px; height:60px; background:rgba(255,255,255,0.2); border-radius:12px; display:flex; align-items:center; justify-content:center;">
+                            <i class="fa-solid fa-arrow-trend-up" style="font-size:1.8rem;"></i>
+                        </div>
+                        <div>
+                            <small style="opacity:0.85; display:block; margin-bottom:5px;">Ingresos Totales</small>
+                            <h2 id="stat-income" style="margin:0; font-size:2rem; font-weight:800;">$0</h2>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card stat-card-modern" style="background:linear-gradient(135deg, #ef4444, #f87171); color:white; padding:25px; border-radius:16px; box-shadow:0 8px 20px rgba(239, 68, 68, 0.3);">
+                    <div style="display:flex; align-items:center; gap:15px;">
+                        <div style="width:60px; height:60px; background:rgba(255,255,255,0.2); border-radius:12px; display:flex; align-items:center; justify-content:center;">
+                            <i class="fa-solid fa-arrow-trend-down" style="font-size:1.8rem;"></i>
+                        </div>
+                        <div>
+                            <small style="opacity:0.85; display:block; margin-bottom:5px;">Egresos Totales</small>
+                            <h2 id="stat-expense" style="margin:0; font-size:2rem; font-weight:800;">$0</h2>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card stat-card-modern" style="background:linear-gradient(135deg, #6366f1, #8b5cf6); color:white; padding:25px; border-radius:16px; box-shadow:0 8px 20px rgba(99, 102, 241, 0.3);">
+                    <div style="display:flex; align-items:center; gap:15px;">
+                        <div style="width:60px; height:60px; background:rgba(255,255,255,0.2); border-radius:12px; display:flex; align-items:center; justify-content:center;">
+                            <i class="fa-solid fa-wallet" style="font-size:1.8rem;"></i>
+                        </div>
+                        <div>
+                            <small style="opacity:0.85; display:block; margin-bottom:5px;">Balance Neto</small>
+                            <h2 id="stat-balance" style="margin:0; font-size:2rem; font-weight:800;">$0</h2>
+                        </div>
+                    </div>
+                    <div id="balance-indicator" style="height:6px; background:rgba(255,255,255,0.3); border-radius:3px; margin-top:15px; transition:0.5s;"></div>
+                </div>
+            </div>
+
+            <!-- CHARTS SECTION -->
+            <div style="display:grid; grid-template-columns:1fr 1.5fr; gap:20px; margin-top:25px;">
+                
+                <!-- Donut Chart -->
+                <div class="card glass" style="padding:25px;">
+                    <h3 style="margin:0 0 20px 0; font-size:1.05rem;">Distribución del Capital</h3>
+                    <div style="position:relative; height:280px;">
+                        <canvas id="financeChartDonut"></canvas>
+                    </div>
+                </div>
+
+                <!-- Bar Chart -->
+                <div class="card glass" style="padding:25px;">
+                    <h3 style="margin:0 0 20px 0; font-size:1.05rem;">Gastos por Categoría</h3>
+                    <div style="position:relative; height:280px;">
+                        <canvas id="financeChartBar"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TRANSACTIONS TABLE -->
+            <div class="card glass" style="margin-top:25px;">
+                <div class="card-header" style="padding:20px 25px; border-bottom:1px solid #f1f5f9; display:flex; justify-content:space-between; align-items:center;">
+                    <h3 style="margin:0; font-size:1.1rem;">Historial de Transacciones</h3>
+                    <button class="btn btn-secondary btn-sm" onclick="Finance.filterTransactions()">
+                        <i class="fa-solid fa-filter"></i> Filtrar
+                    </button>
+                </div>
+                <div class="table-container">
+                    <table style="width:100%; border-collapse:collapse;">
+                        <thead>
+                            <tr style="border-bottom:2px solid #e2e8f0;">
+                                <th style="padding:15px; text-align:left; font-weight:700; font-size:0.85rem; color:var(--text-secondary);">Fecha</th>
+                                <th style="padding:15px; text-align:left;">Concepto</th>
+                                <th style="padding:15px; text-align:center;">Tipo</th>
+                                <th style="padding:15px; text-align:right;">Monto</th>
+                            </tr>
+                        </thead>
+                        <tbody id="finance-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+        // Initialize quotes
+        if (window.MotivationalQuotes) {
+            setTimeout(() => window.MotivationalQuotes.init(), 100);
+        }
+    },
+
+    showCreateModal() {
+        const html = `
+            <form id="create-finance-form">
+                <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:15px;">
+                    <div class="form-group">
+                        <label>Tipo de Transacción</label>
+                        <select name="tipo" class="form-select" required onchange="Finance.updateCategoryOptions(this.value)">
+                            <option value="ingreso">Ingreso</option>
+                            <option value="egreso">Egreso</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Categoría</label>
+                        <select name="categoria" id="category-select" class="form-select" required>
+                            <option value="ventas">Ventas</option>
+                            <option value="servicios">Servicios</option>
+                            <option value="otros">Otros Ingresos</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Concepto / Descripción <span style="color:var(--error);">*</span></label>
+                    <input type="text" name="concepto" class="form-control" required placeholder="Ej: Pago de cliente por proyecto web">
+                </div>
+
+                <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:15px;">
+                    <div class="form-group">
+                        <label>Monto <span style="color:var(--error);">*</span></label>
+                        <input type="number" name="monto" class="form-control" required step="0.01" min="0" placeholder="0.00">
+                    </div>
+                    <div class="form-group">
+                        <label>Fecha</label>
+                        <input type="date" name="fecha" class="form-control" value="${new Date().toISOString().split('T')[0]}">
+                    </div>
+                </div>
+            </form>
+        `;
+
+        UI.modal.show('Nueva Transacción Financiera', html, `
+            <button class="btn btn-secondary" onclick="UI.modal.hide()">Cancelar</button>
+            <button class="btn btn-primary" onclick="Finance.handleCreate()"><i class="fa-solid fa-floppy-disk"></i> Registrar</button>
+        `);
+    },
+
+    updateCategoryOptions(tipo) {
+        const select = document.getElementById('category-select');
+        if (!select) return;
+
+        if (tipo === 'ingreso') {
+            select.innerHTML = `
+                <option value="ventas">Ventas</option>
+                <option value="servicios">Servicios</option>
+                <option value="proyectos">Proyectos</option>
+                <option value="otros">Otros Ingresos</option>
+            `;
+        } else {
+            select.innerHTML = `
+                <option value="nomina">Nómina</option>
+                <option value="servicios">Servicios y Suscripciones</option>
+                <option value="marketing">Marketing</option>
+                <option value="infraestructura">Infraestructura</option>
+                <option value="otros">Otros Gastos</option>
+            `;
+        }
+    },
+
+    async handleCreate() {
+        const form = document.getElementById('create-finance-form');
+        if (!form.reportValidity()) return;
+
+        const data = Object.fromEntries(new FormData(form).entries());
+
+        try {
+            const res = await fetch('/api/finanzas', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            if (res.ok) {
+                UI.notify('✅ Transacción registrada', 'success');
+                UI.modal.hide();
+                this.fetchData();
+            } else {
+                UI.notify('Error al guardar', 'error');
+            }
+        } catch (e) {
+            UI.notify('Error de conexión', 'error');
+        }
+    },
+
+    async showRecurringModal() {
+        const html = `
+            <div class="recurring-management">
+                <div style="background:#f8fafc; padding:20px; border-radius:12px; margin-bottom:25px; border:1px solid #e2e8f0;">
+                    <h4 style="margin:0 0 15px 0; font-size:0.95rem;">Agregar Gasto Recurrente</h4>
+                    <div style="display:grid; grid-template-columns: 2fr 1fr 1fr 1fr 70px; gap:10px;">
+                        <input type="text" id="recurring-concept" class="form-control" placeholder="Concepto (ej: Renta Oficina)">
+                        <input type="number" id="recurring-amount" class="form-control" placeholder="Monto" min="0" step="0.01">
+                        <select id="recurring-frequency" class="form-select">
+                            <option value="mensual">Mensual</option>
+                            <option value="quincenal">Quincenal</option>
+                            <option value="semanal">Semanal</option>
+                        </select>
+                        <input type="number" id="recurring-day" class="form-control" placeholder="Día" min="1" max="31">
+                        <button class="btn btn-success" onclick="Finance.saveRecurringExpense()"><i class="fa-solid fa-plus"></i></button>
+                    </div>
+                </div>
+
+                <div id="recurring-list" style="display:flex; flex-direction:column; gap:12px;">
+                    <p class="text-muted text-center">Cargando gastos recurrentes...</p>
+                </div>
+            </div>
+        `;
+        UI.modal.show('Gastos Recurrentes', html, `<button class="btn btn-secondary" onclick="UI.modal.hide()">Cerrar</button>`, true);
+        this.fetchRecurringExpenses();
+    },
+
+    async fetchRecurringExpenses() {
+        try {
+            const res = await fetch('/api/finanzas/recurrentes');
+            const expenses = await res.json();
+            this.renderRecurringExpenses(expenses);
+        } catch (e) { }
+    },
+
+    renderRecurringExpenses(expenses) {
+        const container = document.getElementById('recurring-list');
+        if (!container) return;
+
+        if (expenses.length === 0) {
+            container.innerHTML = '<p class="text-muted text-center" style="padding:40px;">No tienes gastos recurrentes configurados.</p>';
+            return;
+        }
+
+        container.innerHTML = expenses.map(e => `
+            <div class="recurring-item" style="background:white; border:1px solid #e2e8f0; border-radius:12px; padding:15px; display:flex; align-items:center; gap:15px;">
+                <div style="flex:1;">
+                    <strong style="display:block; margin-bottom:5px;">${e.concepto}</strong>
+                    <small style="color:var(--text-secondary);">
+                        <i class="fa-solid fa-calendar"></i> ${e.frecuencia.toUpperCase()} - Día ${e.dia_vencimiento}
+                        ${e.categoria ? `• ${e.categoria}` : ''}
+                    </small>
+                </div>
+                <strong style="color:var(--error); font-size:1.1rem;">$${e.monto.toLocaleString()}</strong>
+                <button class="btn btn-danger btn-sm" onclick="Finance.deleteRecurring('${e.id}')">
+                    <i class="fa-solid fa-trash"></i>
+                </button>
+            </div>
+        `).join('');
+    },
+
+    async saveRecurringExpense() {
+        const concepto = document.getElementById('recurring-concept').value;
+        const monto = parseFloat(document.getElementById('recurring-amount').value);
+        const frecuencia = document.getElementById('recurring-frequency').value;
+        const dia_vencimiento = parseInt(document.getElementById('recurring-day').value);
+
+        if (!concepto || !monto || !dia_vencimiento) return UI.notify('Completa todos los campos', 'warning');
+
+        try {
+            const res = await fetch('/api/finanzas/recurrentes', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ concepto, monto, frecuencia, dia_vencimiento, categoria: 'Gasto Fijo' })
+            });
+
+            if (res.ok) {
+                UI.notify('✅ Gasto recurrente agregado', 'success');
+                document.getElementById('recurring-concept').value = '';
+                document.getElementById('recurring-amount').value = '';
+                document.getElementById('recurring-day').value = '';
+                this.fetchRecurringExpenses();
+            }
+        } catch (e) { UI.notify('Error al guardar', 'error'); }
+    },
+
+    async deleteRecurring(id) {
+        if (!confirm('¿Eliminar este gasto recurrente?')) return;
+        try {
+            const res = await fetch(`/api/finanzas/recurrentes/${id}`, { method: 'DELETE' });
+            if (res.ok) {
+                UI.notify('Gasto eliminado', 'success');
+                this.fetchRecurringExpenses();
+            }
+        } catch (e) { }
+    },
+
+    async showPayrollModal() {
+        try {
+            const res = await fetch('/api/equipo');
+            const team = await res.json();
+
+            const totalPayroll = team.reduce((sum, member) => sum + (member.sueldo_base || 0), 0);
+
+            const html = `
+                <div style="padding:10px;">
+                    <div class="payroll-summary" style="background:var(--gradient-primary); color:white; padding:25px; border-radius:16px; margin-bottom:25px; display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <h3 style="margin:0; opacity:0.9; font-size:1rem;">Nómina Mensual Estimada</h3>
+                            <h2 style="margin:5px 0 0 0; font-size:2rem;">$${totalPayroll.toLocaleString()}</h2>
+                        </div>
+                        <i class="fa-solid fa-hand-holding-dollar" style="font-size:3rem; opacity:0.3;"></i>
+                    </div>
+
+                    <div class="team-salaries" style="display:flex; flex-direction:column; gap:12px;">
+                        <h4 style="margin:0 0 5px 0; font-size:0.95rem;">Detalle de Sueldos</h4>
+                        ${team.map(m => `
+                            <div style="display:flex; justify-content:space-between; align-items:center; padding:15px; background:#f8fafc; border-radius:12px; border:1px solid #e2e8f0;">
+                                <div style="display:flex; align-items:center; gap:12px;">
+                                    <div style="width:35px; height:35px; border-radius:50%; background:white; display:flex; align-items:center; justify-content:center; border:1px solid #e2e8f0;">
+                                        <i class="fa-solid fa-user" style="color:var(--primary-medium);"></i>
+                                    </div>
+                                    <div>
+                                        <strong style="display:block; font-size:0.9rem;">${m.nombre} ${m.apellido}</strong>
+                                        <small style="color:var(--text-secondary);">${m.puesto || 'Sin puesto'}</small>
+                                    </div>
+                                </div>
+                                <div style="text-align:right;">
+                                    <strong style="font-size:1rem; color:var(--primary-dark);">$${(m.sueldo_base || 0).toLocaleString()}</strong>
+                                    <small style="display:block; color:#94a3b8; font-size:0.75rem;">Base mensual</small>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+
+                    <div style="margin-top:25px; padding:15px; background:white; border:1px dashed #cbd5e1; border-radius:12px;">
+                        <p style="margin:0; font-size:0.85rem; color:var(--text-secondary); text-align:center;">
+                            <i class="fa-solid fa-circle-info"></i> Para modificar sueldos, dirígete al módulo de <strong>Equipo</strong>.
+                        </p>
+                    </div>
+                </div>
+            `;
+
+            UI.modal.show('Gestión de Nómina', html, `
+                <button class="btn btn-secondary" onclick="UI.modal.hide()">Cerrar</button>
+                <button class="btn btn-primary" onclick="Finance.registerPayrollPayment(${totalPayroll})">
+                    <i class="fa-solid fa-receipt"></i> Registrar Pago Mensual
+                </button>
+            `, true);
+        } catch (e) { UI.notify('Error al cargar nómina', 'error'); }
+    },
+
+    async registerPayrollPayment(monto) {
+        if (!confirm(`¿Deseas registrar el pago de nómina por $${monto.toLocaleString()} como un gasto en este mes?`)) return;
+
+        const data = {
+            tipo: 'egreso',
+            categoria: 'Nómina',
+            monto: monto,
+            concepto: 'Pago de Nómina Mensual - ' + new Intl.DateTimeFormat('es-MX', { month: 'long', year: 'numeric' }).format(new Date()),
+            descripcion: 'Cierre de nómina del equipo completo.',
+            fecha: new Date().toISOString().split('T')[0]
+        };
+
+        try {
+            const res = await fetch('/api/finanzas', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            if (res.ok) {
+                UI.notify('✅ Nómina registrada en finanzas', 'success');
+                this.fetchSummary();
+                this.fetchTransactions();
+                UI.modal.hide();
+            }
+        } catch (e) { }
+    },
+
+    exportReport() {
+        UI.notify('📊 Generando reporte financiero...', 'info');
+        // TODO: Implement export
+    },
+
+    filterTransactions() {
+        UI.notify('Filtros próximamente', 'info');
+    }
+};
+
+window.Finance = Finance;

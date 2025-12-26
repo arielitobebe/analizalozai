@@ -1,0 +1,133 @@
+ARCHIVO: public\js\community.js
+================================================================================
+
+const Community = {
+    init() {
+        this.renderView();
+        this.fetchNotices();
+    },
+
+    async fetchNotices() {
+        try {
+            const res = await fetch('/api/community/avisos');
+            const notices = await res.json();
+            this.renderNotices(notices);
+        } catch (e) { }
+    },
+
+    renderView() {
+        const container = document.getElementById('module-content');
+        container.innerHTML = `
+            ${UI.renderHeader('COMUNIDAD', {
+            hideSearch: true,
+            moduleTitle: 'Gestión de Comunidad',
+            description: 'Comunicación interna, noticias del equipo y cultura corporativa.',
+            actionButton: `<button class="btn btn-primary" onclick="Community.showCreateModal()">
+                    <i class="fa-solid fa-bullhorn"></i> Publicar Aviso
+                </button>`
+        })}
+            
+            <div class="community-grid" style="display:grid; grid-template-columns: 2fr 1fr; gap:25px; margin-top:20px;">
+                <div class="card glass" style="padding:25px;">
+                    <h3>Tablón de Anuncios</h3>
+                    <div id="notices-list" style="display:flex; flex-direction:column; gap:20px; margin-top:20px;">
+                        <p class="text-muted">Cargando avisos...</p>
+                    </div>
+                </div>
+
+                <div class="metrics-sidebar">
+                    <div class="card glass" style="margin-bottom:20px; padding:25px;">
+                        <h3>Eventos Próximos</h3>
+                        <div style="display:flex; flex-direction:column; gap:12px; margin-top:15px;">
+                            <div style="background:#f8fafc; padding:12px; border-radius:12px; border-left:4px solid var(--primary-medium);">
+                                <strong style="display:block; font-size:0.9rem;">Review de Q4</strong>
+                                <span style="font-size:0.75rem; color:var(--text-secondary);">Mañana @ 10:00 AM</span>
+                            </div>
+                            <div style="background:#f8fafc; padding:12px; border-radius:12px; border-left:4px solid var(--success);">
+                                <strong style="display:block; font-size:0.9rem;">Team Building Digital</strong>
+                                <span style="font-size:0.75rem; color:var(--text-secondary);">Viernes @ 4:00 PM</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card glass" style="padding:25px;">
+                        <h3>Canales Activos</h3>
+                        <div style="display:flex; justify-content:space-around; margin-top:20px;">
+                            <i class="fa-brands fa-slack" style="font-size:1.5rem; color:#4A154B; cursor:pointer;" title="Slack"></i>
+                            <i class="fa-brands fa-discord" style="font-size:1.5rem; color:#5865F2; cursor:pointer;" title="Discord"></i>
+                            <i class="fa-brands fa-whatsapp" style="font-size:1.5rem; color:#25D366; cursor:pointer;" title="WhatsApp Groups"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        // Initialize quotes
+        if (window.MotivationalQuotes) {
+            setTimeout(() => window.MotivationalQuotes.init(), 100);
+        }
+    },
+
+    renderNotices(notices) {
+        const container = document.getElementById('notices-list');
+        if (notices.length === 0) {
+            container.innerHTML = '<p class="text-muted text-center" style="padding:40px;">No hay comunicados recientes.</p>';
+            return;
+        }
+
+        container.innerHTML = notices.map(n => `
+            <div class="notice-item fade-in" style="background:white; border:1px solid #e2e8f0; border-radius:16px; padding:20px; box-shadow:0 4px 12px rgba(0,0,0,0.03);">
+                <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                    <h4 style="margin:0; color:var(--primary-dark);">${n.titulo}</h4>
+                    <span style="font-size:0.75rem; color:var(--text-secondary);">${new Date(n.fecha).toLocaleDateString()}</span>
+                </div>
+                <p style="margin:0 0 15px 0; color:#475569; line-height:1.6; font-size:0.9rem;">${n.contenido}</p>
+                <div style="display:flex; align-items:center; gap:10px; border-top:1px solid #f1f5f9; padding-top:12px;">
+                    <div style="width:24px; height:24px; background:var(--gradient-primary); border-radius:50%; display:flex; align-items:center; justify-content:center; color:white; font-size:0.6rem; font-weight:700;">
+                        ${n.autor_nombre ? n.autor_nombre.charAt(0) : 'A'}
+                    </div>
+                    <span style="font-size:0.8rem; font-weight:600; color:var(--text-secondary);">${n.autor_nombre || 'Sistema'}</span>
+                </div>
+            </div>
+        `).join('');
+    },
+
+    showCreateModal() {
+        const html = `
+            <form id="notice-form">
+                <div class="form-group">
+                    <label>Título del Aviso</label>
+                    <input type="text" name="titulo" class="form-control" required placeholder="Ej: Nueva función disponible">
+                </div>
+                <div class="form-group">
+                    <label>Contenido</label>
+                    <textarea name="contenido" class="form-control" rows="5" required placeholder="Escribe el mensaje para el equipo..."></textarea>
+                </div>
+            </form>
+        `;
+        UI.modal.show('Publicar en el Tablón', html, `
+            <button class="btn btn-secondary" onclick="UI.modal.hide()">Cancelar</button>
+            <button class="btn btn-primary" onclick="Community.handleSave()"><i class="fa-solid fa-paper-plane"></i> Publicar</button>
+        `);
+    },
+
+    async handleSave() {
+        const form = document.getElementById('notice-form');
+        if (!form.reportValidity()) return;
+        const data = Object.fromEntries(new FormData(form).entries());
+        data.autor_id = 'SYSTEM'; // Fallback
+
+        try {
+            const res = await fetch('/api/community/avisos', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            if (res.ok) {
+                UI.notify('Aviso publicado con éxito', 'success');
+                UI.modal.hide();
+                this.fetchNotices();
+            }
+        } catch (e) { UI.notify('Error al publicar', 'error'); }
+    }
+};
+
+window.Community = Community;

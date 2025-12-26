@@ -1,0 +1,207 @@
+ARCHIVO: server\seed.js
+================================================================================
+
+const db = require('./db');
+const { v4: uuidv4 } = require('uuid');
+
+function seed() {
+        console.log('Seeding database with demo data...');
+
+        db.serialize(() => {
+                // Limpiar datos previos (opcional)
+                // db.run('DELETE FROM leads');
+                // db.run('DELETE FROM clientes');
+
+                // Miembros del Equipo
+                const adminId = uuidv4();
+                db.run(`INSERT OR IGNORE INTO usuarios_equipo (id, nombre, apellido, correo_corporativo, departamento, puesto, sueldo_base, activo) 
+        VALUES (?, 'Admin', 'Novadex', 'admin@novadex.com', 'Administración', 'Director General', 50000, 1)`, [adminId]);
+
+                const managerId = uuidv4();
+                db.run(`INSERT OR IGNORE INTO usuarios_equipo (id, nombre, apellido, correo_corporativo, departamento, puesto, sueldo_base, celular, activo) 
+        VALUES (?, 'Juan', 'Pérez', 'juan@novadex.com', 'Ventas', 'Senior Manager', 25000, '55-1234-5678', 1)`, [managerId]);
+
+                const devId = uuidv4();
+                db.run(`INSERT OR IGNORE INTO usuarios_equipo (id, nombre, apellido, correo_corporativo, departamento, puesto, sueldo_base, activo) 
+        VALUES (?, 'María', 'González', 'maria@novadex.com', 'Desarrollo', 'Lead Developer', 30000, 1)`, [devId]);
+
+                const markId = uuidv4();
+                db.run(`INSERT OR IGNORE INTO usuarios_equipo (id, nombre, apellido, correo_corporativo, departamento, puesto, sueldo_base, activo) 
+        VALUES (?, 'Carlos', 'Ramírez', 'carlos@novadex.com', 'Marketing', 'Marketing Manager', 22000, 1)`, [markId]);
+
+                // Servicios
+                const srv1Id = uuidv4();
+                db.run(`INSERT OR IGNORE INTO servicios (id, nombre, categoria, descripcion, costo, activo) 
+        VALUES (?, 'Gestión Redes Sociales', 'Marketing', 'Manejo integral de Instagram, Facebook y TikTok', 8000, 1)`, [srv1Id]);
+
+                const srv2Id = uuidv4();
+                db.run(`INSERT OR IGNORE INTO servicios (id, nombre, categoria, descripcion, costo, activo) 
+        VALUES (?, 'Desarrollo Web Pro', 'Desarrollo', 'Sitio web corporativo optimizado con SEO', 25000, 1)`, [srv2Id]);
+
+                const srv3Id = uuidv4();
+                db.run(`INSERT OR IGNORE INTO servicios (id, nombre, categoria, descripcion, costo, activo) 
+        VALUES (?, 'Branding Completo', 'Diseño', 'Identidad corporativa, logo y manual de marca', 15000, 1)`, [srv3Id]);
+
+                const srv4Id = uuidv4();
+                db.run(`INSERT OR IGNORE INTO servicios (id, nombre, categoria, descripcion, costo, activo) 
+        VALUES (?, 'Marketing Digital 360', 'Marketing', 'Estrategia integral de marketing digital', 18000, 1)`, [srv4Id]);
+
+                // Clientes
+                const client1Id = uuidv4();
+                db.run(`INSERT OR IGNORE INTO clientes (id, nombre_negocio, persona_encargada, correo_electronico, telefono, estado_pago, monto_total, monto_pagado, monto_pendiente, estado, vendedor_id) 
+        VALUES (?, 'Hospital Ángeles', 'Dr. García', 'garcia@angeles.com', '55-8765-4321', 'al_corriente', 45000, 45000, 0, 'activo', ?)`, [client1Id, managerId]);
+
+                const client2Id = uuidv4();
+                db.run(`INSERT OR IGNORE INTO clientes (id, nombre_negocio, persona_encargada, correo_electronico, telefono, estado_pago, monto_total, monto_pagado, monto_pendiente, estado, vendedor_id) 
+        VALUES (?, 'Café Central', 'Ana López', 'ana@cafecentral.com', '55-2345-6789', 'pendiente', 18000, 10000, 8000, 'activo', ?)`, [client2Id, managerId]);
+
+                const client3Id = uuidv4();
+                db.run(`INSERT OR IGNORE INTO clientes (id, nombre_negocio, persona_encargada, correo_electronico, telefono, estado_pago, monto_total, monto_pagado, monto_pendiente, estado, vendedor_id) 
+        VALUES (?, 'Tech Solutions', 'Roberto Díaz', 'roberto@techsol.com', '55-3456-7890', 'al_corriente', 35000, 35000, 0, 'activo', ?)`, [client3Id, devId]);
+
+                const client4Id = uuidv4();
+                db.run(`INSERT OR IGNORE INTO clientes (id, nombre_negocio, persona_encargada, correo_electronico, telefono, estado_pago, monto_total, monto_pagado, monto_pendiente, estado, vendedor_id) 
+        VALUES (?, 'Boutique Luna', 'Laura Martínez', 'laura@boutiqueluna.com', '55-4567-8901', 'moroso', 12000, 4000, 8000, 'activo', ?)`, [client4Id, markId]);
+
+                // Leads - Diferentes estados y temperaturas
+                db.run(`INSERT OR IGNORE INTO leads (id, nombre, empresa, persona_encargada, correo_electronico, telefono, estatus, temperatura, asignado_id, fuente, notas) 
+        VALUES (?, 'Restaurante El Faro', 'El Faro Gastronomía', 'Carlos Ruiz', 'carlos@elfaro.com', '55-5678-9012', 'nuevo', 'caliente', ?, 'Facebook', 'Interesado en redes sociales y fotografía')`, [uuidv4(), managerId]);
+
+                db.run(`INSERT OR IGNORE INTO leads (id, nombre, empresa, persona_encargada, correo_electronico, telefono, estatus, temperatura, asignado_id, fuente, notas) 
+        VALUES (?, 'Boutique Sofía', 'Moda Sofía S.A.', 'Sofía Méndez', 'sofia@modasofia.com', '55-6789-0123', 'contactado', 'tibio', ?, 'Instagram', 'Requiere página web de ecommerce')`, [uuidv4(), managerId]);
+
+                db.run(`INSERT OR IGNORE INTO leads (id, nombre, empresa, persona_encargada, correo_electronico, telefono, estatus, temperatura, asignado_id, fuente, notas) 
+        VALUES (?, 'Gym Evolution', 'Gimnasio Evolution', 'Pedro Sánchez', 'pedro@gymevolution.com', '55-7890-1234', 'en_seguimiento', 'caliente', ?, 'Web', 'Busca branding y campaña de lanzamiento')`, [uuidv4(), markId]);
+
+                db.run(`INSERT OR IGNORE INTO leads (id, nombre, empresa, persona_encargada, correo_electronico, telefono, estatus, temperatura, asignado_id, fuente, notas) 
+        VALUES (?, 'Clínica Dental Smile', 'Dental Smile', 'Dra. Patricia Torres', 'patricia@dentalsmile.com', '55-8901-2345', 'propuesta_enviada', 'tibio', ?, 'Referido', 'Propuesta enviada para gestión de redes')`, [uuidv4(), managerId]);
+
+                db.run(`INSERT OR IGNORE INTO leads (id, nombre, empresa, persona_encargada, correo_electronico, telefono, estatus, temperatura, asignado_id, fuente, notas) 
+        VALUES (?, 'Bufete Jurídico LMR', 'LMR Abogados', 'Lic. Miguel Ramos', 'miguel@lmrabogados.com', '55-9012-3456', 'en_negociacion', 'caliente', ?, 'LinkedIn', 'Negociando paquete completo de marketing')`, [uuidv4(), devId]);
+
+                db.run(`INSERT OR IGNORE INTO leads (id, nombre, empresa, persona_encargada, correo_electronico, estatus, temperatura, asignado_id, fuente, notas) 
+        VALUES (?, 'Veterinaria Pets Plus', 'Pets Plus', 'Dra. Carmen Vega', 'carmen@petsplus.com', 'ganado', 'caliente', ?, 'Web', 'Lead convertido - Firmado contrato de branding')`, [uuidv4(), markId]);
+
+                // Proyectos
+                const proj1Id = uuidv4();
+                db.run(`INSERT OR IGNORE INTO proyectos (id, nombre, cliente_id, servicio_id, progreso_general, estado, fecha_inicio, descripcion, presupuesto) 
+        VALUES (?, 'Branding Hospital Ángeles 2024', ?, ?, 65, 'activo', '2024-01-15', 'Renovación completa de identidad corporativa', 45000)`, [proj1Id, client1Id, srv3Id]);
+
+                const proj2Id = uuidv4();
+                db.run(`INSERT OR IGNORE INTO proyectos (id, nombre, cliente_id, servicio_id, progreso_general, estado, fecha_inicio, descripcion, presupuesto) 
+        VALUES (?, 'Web Café Central', ?, ?, 40, 'activo', '2024-02-01', 'Sitio web con menú digital y reservaciones', 25000)`, [proj2Id, client2Id, srv2Id]);
+
+                const proj3Id = uuidv4();
+                db.run(`INSERT OR IGNORE INTO proyectos (id, nombre, cliente_id, servicio_id, progreso_general, estado, fecha_inicio, descripcion, presupuesto) 
+        VALUES (?, 'Campaña Digital Tech Solutions', ?, ?, 85, 'activo', '2024-01-05', 'Marketing 360 para lanzamiento de producto', 35000)`, [proj3Id, client3Id, srv4Id]);
+
+                // Tareas
+                db.run(`INSERT OR IGNORE INTO tareas (id, titulo, descripcion, prioridad, estatus, proyecto_id, asignado_id) 
+        VALUES (?, 'Diseño de logo principal', 'Crear 3 propuestas de logo para Hospital Ángeles', 'alta', 'completada', ?, ?)`, [uuidv4(), proj1Id, devId]);
+
+                db.run(`INSERT OR IGNORE INTO tareas (id, titulo, descripcion, prioridad, estatus, proyecto_id, asignado_id) 
+        VALUES (?, 'Manual de identidad corporativa', 'Documentar paleta de colores, tipografía y uso del logo', 'alta', 'en_progreso', ?, ?)`, [uuidv4(), proj1Id, devId]);
+
+                db.run(`INSERT OR IGNORE INTO tareas (id, titulo, descripcion, prioridad, estatus, proyecto_id, asignado_id) 
+        VALUES (?, 'Desarrollo frontend web', 'Maquetar todas las páginas del sitio', 'alta', 'en_progreso', ?, ?)`, [uuidv4(), proj2Id, devId]);
+
+                db.run(`INSERT OR IGNORE INTO tareas (id, titulo, descripcion, prioridad, estatus, asignado_id) 
+        VALUES (?, 'Revisión mensual de KPIs', 'Analizar métricas de campañas activas', 'media', 'pendiente', ?)`, [uuidv4(), markId]);
+
+                // Ventas
+                db.run(`INSERT OR IGNORE INTO ventas (id, numero_venta, cliente_id, monto_total, estatus, etapa, probabilidad_cierre, vendedor_id, fecha_cierre_estimada) 
+        VALUES (?, 'V-2024-001', ?, 45000, 'cerrada', 'ganado', 100, ?, '2024-01-15')`, [uuidv4(), client1Id, managerId]);
+
+                db.run(`INSERT OR IGNORE INTO ventas (id, numero_venta, cliente_id, monto_total, estatus, etapa, probabilidad_cierre, vendedor_id, fecha_cierre_estimada, notas) 
+        VALUES (?, 'V-2024-002', ?, 18000, 'en_proceso', 'negociacion', 70, ?, '2024-03-10', 'Pendiente aprobación de presupuesto')`, [uuidv4(), client2Id, managerId]);
+
+                // Finanzas
+                db.run(`INSERT OR IGNORE INTO registros_financieros (id, concepto, monto, tipo, categoria, fecha) 
+        VALUES (?, 'Pago Inicial Hospital Ángeles', 25000, 'ingreso', 'Servicios', '2024-01-10')`, [uuidv4()]);
+
+                db.run(`INSERT OR IGNORE INTO registros_financieros (id, concepto, monto, tipo, categoria, fecha) 
+        VALUES (?, 'Pago Final Hospital Ángeles', 20000, 'ingreso', 'Servicios', '2024-02-15')`, [uuidv4()]);
+
+                db.run(`INSERT OR IGNORE INTO registros_financieros (id, concepto, monto, tipo, categoria, fecha) 
+        VALUES (?, 'Sueldos Enero', 127000, 'egreso', 'Nómina', '2024-01-31')`, [uuidv4()]);
+
+                db.run(`INSERT OR IGNORE INTO registros_financieros (id, concepto, monto, tipo, categoria, fecha) 
+        VALUES (?, 'Renta de Oficina', 15000, 'egreso', 'Gastos Operativos', '2024-01-05')`, [uuidv4()]);
+
+                db.run(`INSERT OR IGNORE INTO registros_financieros (id, concepto, monto, tipo, categoria, fecha) 
+        VALUES (?, 'Licencias de Software', 8000, 'egreso', 'Tecnología', '2024-01-12')`, [uuidv4()]);
+
+                db.run(`INSERT OR IGNORE INTO registros_financieros (id, concepto, monto, tipo, categoria, fecha) 
+        VALUES (?, 'Pago Inicial Café Central', 10000, 'ingreso', 'Servicios', '2024-02-05')`, [uuidv4()]);
+
+                db.run(`INSERT OR IGNORE INTO registros_financieros (id, concepto, monto, tipo, categoria, fecha) 
+        VALUES (?, 'Pago Tech Solutions', 35000, 'ingreso', 'Servicios', '2024-02-20')`, [uuidv4()]);
+
+                // Cotizaciones
+                const cot1Id = uuidv4();
+                db.run(`INSERT OR IGNORE INTO cotizaciones (id, folio, cliente_id, fecha, vencimiento, subtotal, iva, total, estado, notas) 
+        VALUES (?, 'COT-2024-001', ?, '2024-01-10', '2024-01-25', 38793.10, 6206.90, 45000, 'aceptada', 'Cotización para proyecto de branding')`, [cot1Id, client1Id]);
+
+                db.run(`INSERT OR IGNORE INTO cotizacion_items (id, cotizacion_id, descripcion, cantidad, precio_unitario, importe) 
+        VALUES (?, ?, 'Diseño de Identidad Corporativa', 1, 15000, 15000)`, [uuidv4(), cot1Id]);
+
+                db.run(`INSERT OR IGNORE INTO cotizacion_items (id, cotizacion_id, descripcion, cantidad, precio_unitario, importe) 
+        VALUES (?, ?, 'Manual de Marca Digital', 1, 8000, 8000)`, [uuidv4(), cot1Id]);
+
+                db.run(`INSERT OR IGNORE INTO cotizacion_items (id, cotizacion_id, descripcion, cantidad, precio_unitario, importe) 
+        VALUES (?, ?, 'Aplicaciones de Marca', 3, 5264.37, 15793.10)`, [uuidv4(), cot1Id]);
+
+                // Gastos Recurrentes
+                db.run(`INSERT OR IGNORE INTO gastos_recurrentes (id, concepto, monto, frecuencia, dia_vencimiento, activo, categoria) 
+        VALUES (?, 'Renta de Oficina', 15000, 'mensual', 5, 1, 'Gastos Operativos')`, [uuidv4()]);
+
+                db.run(`INSERT OR IGNORE INTO gastos_recurrentes (id, concepto, monto, frecuencia, dia_vencimiento, activo, categoria) 
+        VALUES (?, 'Internet y Telefonía', 2500, 'mensual', 15, 1, 'Gastos Operativos')`, [uuidv4()]);
+
+                db.run(`INSERT OR IGNORE INTO gastos_recurrentes (id, concepto, monto, frecuencia, dia_vencimiento, activo, categoria) 
+        VALUES (?, 'Adobe Creative Cloud', 3500, 'mensual', 1, 1, 'Tecnología')`, [uuidv4()]);
+
+                // Avisos de Comunidad
+                db.run(`INSERT OR IGNORE INTO avisos_comunidad (id, titulo, contenido, autor_id) 
+        VALUES (?, 'Bienvenida al Sistema', 'Bienvenidos al CRM Novadex. Este sistema te ayudará a gestionar clientes, proyectos y finanzas de manera eficiente.', ?)`, [uuidv4(), adminId]);
+
+                db.run(`INSERT OR IGNORE INTO avisos_comunidad (id, titulo, contenido, autor_id) 
+        VALUES (?, 'Nuevo Cliente Confirmado', 'Hospital Ángeles ha confirmado el proyecto de branding. ¡Felicidades al equipo!', ?)`, [uuidv4(), managerId]);
+
+                // Recordatorios
+                const tomorrow = new Date();
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                const nextWeek = new Date();
+                nextWeek.setDate(nextWeek.getDate() + 7);
+
+                db.run(`INSERT OR IGNORE INTO recordatorios (id, titulo, descripcion, fecha_hora, tipo, estado, usuario_id) 
+        VALUES (?, 'Seguimiento Gym Evolution', 'Llamar para seguimiento de propuesta', ?, 'seguimiento', 'pendiente', ?)`,
+                        [uuidv4(), tomorrow.toISOString(), managerId]);
+
+                db.run(`INSERT OR IGNORE INTO recordatorios (id, titulo, descripcion, fecha_hora, tipo, estado, usuario_id) 
+        VALUES (?, 'Entrega Manual de Marca', 'Entregar manual final a Hospital Ángeles', ?, 'entrega', 'pendiente', ?)`,
+                        [uuidv4(), nextWeek.toISOString(), devId]);
+        });
+
+        console.log('✅ Seeding completed successfully!');
+        console.log('📊 Demo data includes:');
+        console.log('  - 4 Team Members');
+        console.log('  - 4 Services');
+        console.log('  - 4 Clients');
+        console.log('  - 6 Leads (various stages)');
+        console.log('  - 3 Active Projects');
+        console.log('  - 7 Financial Records');
+        console.log('  - 1 Quote with items');
+        console.log('  - And more!');
+}
+
+// Auto-run if called directly
+if (require.main === module) {
+        seed();
+        setTimeout(() => {
+                console.log('\n👍 You can now start the server with: npm start');
+                process.exit(0);
+        }, 1000);
+}
+
+module.exports = seed;

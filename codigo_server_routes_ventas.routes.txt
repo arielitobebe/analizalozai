@@ -1,0 +1,140 @@
+ARCHIVO: server\routes\ventas.routes.js
+================================================================================
+
+const express = require('express');
+const router = express.Router();
+const db = require('../db');
+const { v4: uuidv4 } = require('uuid');
+
+// Get all sales with optional stage filter
+router.get('/', (req, res) => {
+    const { etapa } = req.query;
+    let query = `SELECT v.*, c.nombre_negocio as cliente_nombre, c.correo_electronico as cliente_email
+            FROM ventas v 
+            LEFT JOIN clientes c ON v.cliente_id = c.id`;
+
+    const params = [];
+    if (etapa) {
+        query += ' WHERE v.etapa = ?';
+        params.push(etapa);
+    }
+    query += ' ORDER BY v.fecha_creacion DESC';
+
+    db.all(query, params, (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows);
+    });
+});
+
+// Get single sale with items
+router.get('/:id', (req, res) => {
+    const { id } = req.params;
+    db.get(`SELECT v.*, c.nombre_negocio as cliente_nombre, c.correo_electronico as cliente_email 
+            FROM ventas v 
+            LEFT JOIN clientes c ON v.cliente_id = c.id 
+            WHERE v.id = ?`, [id], (err, sale) => {
+        if (err) return res.status(500).json({ error: err.message });
+        if (!sale) return res.status(404).json({ error: 'Venta no encontrada' });
+
+        // Get items if they exist
+        db.all('SELECT * FROM ventas_items WHERE venta_id = ?', [id], (err, items) => {
+            if (err) console.error('Error fetching items:', err);
+            sale.items = items || [];
+            res.json(sale);
+        });
+    });
+});
+
+// Create sale with items
+router.post('/', (req, res) => {
+    const { cliente_id, monto_total, etapa, probabilidad_cierre, notas, fecha_cierre_estimada, vendedor_id, items } = req.body;
+    const id = uuidv4();
+    const numero_venta = `VEN-${Math.floor(10000 + Math.random() * 90000)}`;
+    const estatus = etapa === 'cerrada_ganada' ? 'pagada' : 'borrador';
+
+    const query = `INSERT INTO ventas (id, numero_venta, cliente_id, monto_total, estatus, etapa, probabilidad_cierre, notas, fecha_cierre_estimada, vendedor_id) 
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+
+    db.run(query, [id, numero_venta, cliente_id, monto_total, estatus, etapa || 'prospeccion', probabilidad_cierre || 25, notas, fecha_cierre_estimada, vendedor_id], function (err) {
+        if (err) return res.status(500).json({ error: err.message });
+
+        // Insert items if provided
+        if (items && items.length > 0) {
+            const stmt = db.prepare('INSERT INTO ventas_items (id, venta_id, descripcion, cantidad, precio_unitario, importe) VALUES (?, ?, ?, ?, ?, ?)');
+            items.forEach(item => {
+                stmt.run([uuidv4(), id, item.descripcion, item.cantidad, item.precio_unitario, item.importe]);
+            });
+            stmt.finalize();
+        }
+
+        res.status(201).json({ id, numero_venta, message: 'Venta creada' });
+    });
+});
+
+// Update sale
+router.put('/:id', (req, res) => {
+    const { id } = req.params;
+    const { etapa, probabilidad_cierre, notas, monto_total, fecha_cierre_estimada, estatus } = req.body;
+
+    const updates = [];
+    const params = [];
+
+    if (etapa !== undefined) { updates.push('etapa = ?'); params.push(etapa); }
+    if (probabilidad_cierre !== undefined) { updates.push('probabilidad_cierre = ?'); params.push(probabilidad_cierre); }
+    if (notas !== undefined) { updates.push('notas = ?'); params.push(notas); }
+    if (monto_total !== undefined) { updates.push('monto_total = ?'); params.push(monto_total); }
+    if (fecha_cierre_estimada !== undefined) { updates.push('fecha_cierre_estimada = ?'); params.push(fecha_cierre_estimada); }
+    if (estatus !== undefined) { updates.push('estatus = ?'); params.push(estatus); }
+
+    if (updates.length === 0) {
+        return res.status(400).json({ error: 'No hay campos para actualizar' });
+    }
+
+    params.push(id);
+    const query = `UPDATE ventas SET ${updates.join(', ')} WHERE id = ?`;
+
+    db.run(query, params, function (err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ message: 'Venta actualizada' });
+    });
+});
+
+// Update sale stage (for drag-and-drop)
+router.patch('/:id/stage', (req, res) => {
+    const { id } = req.params;
+    const { etapa } = req.body;
+
+    // Auto-update probability based on stage
+    const probabilities = {
+        'prospeccion': 15,
+        'propuesta': 40,
+        'negociacion': 70,
+        'cerrada_ganada': 100,
+        'cerrada_perdida': 0
+    };
+
+    const probabilidad = probabilities[etapa] || 50;
+    const estatus = etapa === 'cerrada_ganada' ? 'pagada' : 'borrador';
+
+    db.run('UPDATE ventas SET etapa = ?, probabilidad_cierre = ?, estatus = ? WHERE id = ?',
+        [etapa, probabilidad, estatus, id],
+        function (err) {
+            if (err) return res.status(500).json({ error: err.message });
+            res.json({ message: 'Etapa actualizada' });
+        });
+});
+
+// Delete sale
+router.delete('/:id', (req, res) => {
+    const { id } = req.params;
+
+    db.serialize(() => {
+        db.run('DELETE FROM ventas_items WHERE venta_id = ?', [id]);
+        db.run('DELETE FROM ventas WHERE id = ?', [id], function (err) {
+            if (err) return res.status(500).json({ error: err.message });
+            res.json({ message: 'Venta eliminada' });
+        });
+    });
+});
+
+module.exports = router;

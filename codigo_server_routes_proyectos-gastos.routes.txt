@@ -1,0 +1,57 @@
+ARCHIVO: server\routes\proyectos-gastos.routes.js
+================================================================================
+
+const express = require('express');
+const router = express.Router();
+const db = require('../db');
+const { v4: uuidv4 } = require('uuid');
+
+// Obtener todos los gastos de un proyecto
+router.get('/:proyecto_id/gastos', (req, res) => {
+    const { proyecto_id } = req.params;
+    db.all('SELECT * FROM proyectos_gastos WHERE proyecto_id = ? ORDER BY fecha DESC', [proyecto_id], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows);
+    });
+});
+
+// Registrar un nuevo gasto en un proyecto
+router.post('/:proyecto_id/gastos', (req, res) => {
+    const { proyecto_id } = req.params;
+    const { monto, categoria, concepto, fecha, comprobante_url } = req.body;
+
+    if (!monto || !concepto) {
+        return res.status(400).json({ error: 'Monto y concepto son requeridos' });
+    }
+
+    const id = uuidv4();
+    const query = `INSERT INTO proyectos_gastos (id, proyecto_id, monto, categoria, concepto, fecha, comprobante_url) VALUES (?, ?, ?, ?, ?, ?, ?)`;
+
+    db.run(query, [id, proyecto_id, monto, categoria, concepto, fecha || new Date().toISOString().split('T')[0], comprobante_url], function (err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.status(201).json({ id, message: 'Gasto registrado con éxito' });
+    });
+});
+
+// Eliminar un gasto
+router.delete('/:proyecto_id/gastos/:gasto_id', (req, res) => {
+    const { gasto_id } = req.params;
+
+    db.run('DELETE FROM proyectos_gastos WHERE id = ?', [gasto_id], function (err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ message: 'Gasto eliminado' });
+    });
+});
+
+// Actualizar presupuesto del proyecto
+router.patch('/:proyecto_id/presupuesto', (req, res) => {
+    const { proyecto_id } = req.params;
+    const { presupuesto } = req.body;
+
+    db.run('UPDATE proyectos SET presupuesto = ? WHERE id = ?', [presupuesto, proyecto_id], function (err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ message: 'Presupuesto actualizado' });
+    });
+});
+
+module.exports = router;

@@ -1,0 +1,60 @@
+ARCHIVO: server\utils\init-nebula-db.js
+================================================================================
+
+const sqlite3 = require('sqlite3').verbose();
+const path = require('path');
+
+const dbPath = path.resolve(__dirname, '../novadex.db');
+const db = new sqlite3.Database(dbPath);
+
+const initNebulaDB = () => {
+    return new Promise((resolve, reject) => {
+        db.serialize(() => {
+            console.log('[Nebula DB] Inicializando tablas...');
+
+            // Tabla temporal de leads (Radar)
+            db.run(`CREATE TABLE IF NOT EXISTS leads_radar (
+                id TEXT PRIMARY KEY,
+                nombre TEXT NOT NULL,
+                categoria TEXT,
+                delegacion TEXT,
+                direccion TEXT,
+                telefono TEXT,
+                website TEXT,
+                rating_google REAL,
+                num_reviews INTEGER,
+                tiene_web INTEGER DEFAULT 0,
+                tiene_facebook INTEGER DEFAULT 0,
+                tiene_instagram INTEGER DEFAULT 0,
+                tiene_tiktok INTEGER DEFAULT 0,
+                analisis_ia TEXT,
+                servicios_recomendados TEXT, 
+                score_oportunidad INTEGER,
+                prioridad TEXT DEFAULT 'medium',
+                estado TEXT DEFAULT 'new',
+                fecha_busqueda DATETIME DEFAULT CURRENT_TIMESTAMP,
+                guardado_crm INTEGER DEFAULT 0
+            )`);
+
+            // Historial de búsquedas para Rate Limiting
+            db.run(`CREATE TABLE IF NOT EXISTS search_history (
+                id TEXT PRIMARY KEY,
+                usuario_id TEXT DEFAULT 'admin',
+                fecha_busqueda DATETIME DEFAULT CURRENT_TIMESTAMP,
+                delegacion TEXT,
+                categoria TEXT,
+                num_resultados INTEGER
+            )`, (err) => {
+                if (err) {
+                    console.error('[Nebula DB] Error creando tablas:', err);
+                    reject(err);
+                } else {
+                    console.log('[Nebula DB] Tablas leads_radar y search_history listas.');
+                    resolve();
+                }
+            });
+        });
+    });
+};
+
+module.exports = initNebulaDB;

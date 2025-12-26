@@ -1,0 +1,68 @@
+ARCHIVO: server\routes\clientes.routes.js
+================================================================================
+
+const express = require('express');
+const router = express.Router();
+const db = require('../db');
+const { v4: uuidv4 } = require('uuid');
+const upload = require('../upload');
+
+// Get all clients
+router.get('/', (req, res) => {
+    db.all('SELECT * FROM clientes ORDER BY nombre_negocio ASC', (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows);
+    });
+});
+
+// Get single client
+router.get('/:id', (req, res) => {
+    const { id } = req.params;
+    db.get('SELECT * FROM clientes WHERE id = ?', [id], (err, row) => {
+        if (err) return res.status(500).json({ error: err.message });
+        if (!row) return res.status(404).json({ error: 'Cliente no encontrado' });
+        res.json(row);
+    });
+});
+
+// Create client with logo upload
+router.post('/', upload.single('logo'), (req, res) => {
+    const {
+        nombre_negocio, persona_encargada, correo_electronico,
+        telefono, celular, direccion, vendedor_id, monto_total
+    } = req.body;
+
+    // If file uploaded, use its path. Otherwise check if logo_url was sent manually (fallback)
+    const logo_url = req.file ? `/uploads/${req.file.filename}` : (req.body.logo_url || null);
+
+    const id = uuidv4();
+
+    const query = `INSERT INTO clientes (
+        id, nombre_negocio, persona_encargada, correo_electronico, 
+        telefono, celular, direccion, vendedor_id, monto_total, 
+        monto_pagado, monto_pendiente, estado_pago, estado, logo_url
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, 'pendiente', 'activo', ?)`;
+
+    db.run(query, [
+        id, nombre_negocio, persona_encargada, correo_electronico,
+        telefono, celular, direccion, vendedor_id || null, monto_total,
+        monto_total, logo_url
+    ], function (err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.status(201).json({ id, message: 'Cliente creado con éxito', logo_url });
+    });
+});
+
+// Update client
+router.patch('/:id', (req, res) => {
+    const fields = Object.keys(req.body);
+    const values = Object.values(req.body);
+    const setClause = fields.map(f => `${f} = ?`).join(', ');
+
+    db.run(`UPDATE clientes SET ${setClause} WHERE id = ?`, [...values, req.params.id], function (err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ message: 'Cliente actualizado' });
+    });
+});
+
+module.exports = router;

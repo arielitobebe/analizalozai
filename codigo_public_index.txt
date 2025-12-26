@@ -1,0 +1,132 @@
+ARCHIVO: public\index.html
+================================================================================
+
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NOVADEX CRM | Gestión Inteligente</title>
+    <link rel="stylesheet" href="css/styles.css?v=9">
+    <link rel="stylesheet" href="css/modules.css?v=9">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FullCalendar -->
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/main.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+    <!-- SortableJS -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar glass">
+            <div class="logo-container">
+                <div class="logo">N</div>
+                <span class="logo-text">NOVADEX</span>
+            </div>
+
+            <nav class="nav-menu">
+                <a href="#dashboard" class="nav-item active" data-module="dashboard">
+                    <i class="fa-solid fa-house"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#leads" class="nav-item" data-module="leads">
+                    <i class="fa-solid fa-bullseye"></i>
+                    <span>Leads</span>
+                </a>
+                <a href="#clientes" class="nav-item" data-module="clientes">
+                    <i class="fa-solid fa-users"></i>
+                    <span>Clientes</span>
+                </a>
+                <a href="#proyectos" class="nav-item" data-module="proyectos">
+                    <i class="fa-solid fa-briefcase"></i>
+                    <span>Proyectos</span>
+                </a>
+                <a href="#tareas" class="nav-item" data-module="tareas">
+                    <i class="fa-solid fa-check-double"></i>
+                    <span>Tareas</span>
+                </a>
+                <a href="#ventas" class="nav-item" data-module="ventas">
+                    <i class="fa-solid fa-chart-line"></i>
+                    <span>Ventas</span>
+                </a>
+                <a href="#finanzas" class="nav-item" data-module="finanzas">
+                    <i class="fa-solid fa-wallet"></i>
+                    <span>Finanzas</span>
+                </a>
+                <a href="#equipo" class="nav-item" data-module="equipo">
+                    <i class="fa-solid fa-user-group"></i>
+                    <span>Equipo</span>
+                </a>
+                <a href="#comunidad" class="nav-item" data-module="comunidad">
+                    <i class="fa-solid fa-hashtag"></i>
+                    <span>Comunidad</span>
+                </a>
+                <a href="#calendario" class="nav-item" data-module="calendario">
+                    <i class="fa-solid fa-calendar-days"></i>
+                    <span>Calendario</span>
+                </a>
+                <a href="#cotizaciones" class="nav-item" data-module="cotizaciones">
+                    <i class="fa-solid fa-file-invoice-dollar"></i>
+                    <span>Cotizaciones</span>
+                </a>
+                <a href="#nebula" class="nav-item" data-module="nebula">
+                    <i class="fa-solid fa-rocket"></i>
+                    <span>Nebula</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <a href="#configuracion" class="nav-item" data-module="configuracion">
+                    <i class="fa-solid fa-gear"></i>
+                    <span>Configuración</span>
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-layout">
+            <header class="top-header glass" style="display:none;">
+            </header>
+
+            <section id="content-area" class="content-area">
+                <!-- Content will be loaded dynamically -->
+                <div id="loader" class="loader-container" style="display: none;">
+                    <div class="spinner"></div>
+                </div>
+                <div id="module-content"></div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Scripts -->
+    <script src="js/main.js"></script>
+    <script src="js/motivational-quotes.js"></script>
+    <script src="js/dashboard.js"></script>
+    <script src="js/leads.js"></script>
+    <script src="js/team.js"></script>
+    <script src="js/services.js"></script>
+    <script src="js/clients.js"></script>
+    <script src="js/projects.js"></script>
+    <script src="js/finance.js"></script>
+    <script src="js/tasks.js"></script>
+    <script src="js/community.js"></script>
+    <script src="js/sales.js"></script>
+    <script src="js/quotes.js"></script>
+    <script src="js/nebula.js"></script>
+    <script src="js/settings.js"></script>
+    <script src="js/calendar.js"></script>
+    <script src="js/reminders.js"></script>
+</body>
+
+</html>

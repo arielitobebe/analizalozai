@@ -1,0 +1,66 @@
+ARCHIVO: server\routes\proyectos-fases.routes.js
+================================================================================
+
+const express = require('express');
+const router = express.Router();
+const db = require('../db');
+const { v4: uuidv4 } = require('uuid');
+
+// Obtener todas las fases de un proyecto
+router.get('/:proyecto_id/fases', (req, res) => {
+    const { proyecto_id } = req.params;
+    db.all('SELECT * FROM proyectos_fases_custom WHERE proyecto_id = ? ORDER BY orden ASC', [proyecto_id], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows);
+    });
+});
+
+// Agregar una fase a un proyecto
+router.post('/:proyecto_id/fases', (req, res) => {
+    const { proyecto_id } = req.params;
+    const { nombre, orden } = req.body;
+
+    if (!nombre) return res.status(400).json({ error: 'El nombre de la fase es requerido' });
+
+    const id = uuidv4();
+    db.run('INSERT INTO proyectos_fases_custom (id, proyecto_id, nombre, orden) VALUES (?, ?, ?, ?)',
+        [id, proyecto_id, nombre, orden || 0], function (err) {
+            if (err) return res.status(500).json({ error: err.message });
+            res.status(201).json({ id, message: 'Fase agregada' });
+        });
+});
+
+// Actualizar estado de completado de una fase
+router.patch('/:proyecto_id/fases/:fase_id', (req, res) => {
+    const { fase_id } = req.params;
+    const { completada } = req.body;
+
+    db.run('UPDATE proyectos_fases_custom SET completada = ? WHERE id = ?', [completada ? 1 : 0, fase_id], function (err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ message: 'Estado de fase actualizado' });
+    });
+});
+
+// Eliminar una fase
+router.delete('/:proyecto_id/fases/:fase_id', (req, res) => {
+    const { fase_id } = req.params;
+    db.run('DELETE FROM proyectos_fases_custom WHERE id = ?', [fase_id], function (err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ message: 'Fase eliminada' });
+    });
+});
+
+// Reordenar fases (bulk update via batch)
+router.post('/:proyecto_id/fases/reorder', (req, res) => {
+    const { phases } = req.body; // Array of {id, orden}
+    if (!phases || !Array.isArray(phases)) return res.status(400).json({ error: 'Data inválida' });
+
+    db.serialize(() => {
+        const stmt = db.prepare('UPDATE proyectos_fases_custom SET orden = ? WHERE id = ?');
+        phases.forEach(p => stmt.run(p.orden, p.id));
+        stmt.finalize();
+        res.json({ message: 'Orden actualizado' });
+    });
+});
+
+module.exports = router;

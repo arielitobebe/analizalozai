@@ -1,0 +1,136 @@
+ARCHIVO: server\routes\proyectos.routes.js
+================================================================================
+
+const express = require('express');
+const router = express.Router();
+const db = require('../db');
+const { v4: uuidv4 } = require('uuid');
+const upload = require('../upload');
+
+// Get project files
+router.get('/:id/archivos', (req, res) => {
+    const { id } = req.params;
+    db.all('SELECT * FROM proyectos_archivos WHERE proyecto_id = ? ORDER BY fecha_subida DESC', [id], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows);
+    });
+});
+
+// Upload file to project
+router.post('/:id/archivos', upload.single('archivo'), (req, res) => {
+    const { id: proyecto_id } = req.params;
+    if (!req.file) return res.status(400).json({ error: 'No se subió ningún archivo' });
+
+    const id = uuidv4();
+    const { originalname, filename, mimetype, size } = req.file;
+    const url = `/uploads/${filename}`;
+
+    const query = `INSERT INTO proyectos_archivos (id, proyecto_id, nombre, url, tipo, tamano) VALUES (?, ?, ?, ?, ?, ?)`;
+
+    db.run(query, [id, proyecto_id, originalname, url, mimetype, size], function (err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.status(201).json({ id, url, message: 'Archivo subido con éxito' });
+    });
+});
+
+// Delete project file
+router.delete('/:id/archivos/:archivo_id', (req, res) => {
+    const { archivo_id } = req.params;
+    db.run('DELETE FROM proyectos_archivos WHERE id = ?', [archivo_id], function (err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ message: 'Archivo eliminado' });
+    });
+});
+
+// Get all projects
+router.get('/', (req, res) => {
+    db.all('SELECT p.*, c.nombre_negocio as cliente_nombre FROM proyectos p LEFT JOIN clientes c ON p.cliente_id = c.id', (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows);
+    });
+});
+
+// Get single project
+router.get('/:id', (req, res) => {
+    const { id } = req.params;
+    const query = `SELECT p.*, c.nombre_negocio as cliente_nombre 
+                   FROM proyectos p 
+                   LEFT JOIN clientes c ON p.cliente_id = c.id 
+                   WHERE p.id = ?`;
+
+    db.get(query, [id], (err, row) => {
+        if (err) return res.status(500).json({ error: err.message });
+        if (!row) return res.status(404).json({ error: 'Proyecto no encontrado' });
+        res.json(row);
+    });
+});
+
+// Create project
+router.post('/', (req, res) => {
+    const { nombre, cliente_id, servicio_id, fecha_inicio, fecha_entrega_estimada, descripcion } = req.body;
+    const id = uuidv4();
+
+    const query = `INSERT INTO proyectos (id, nombre, cliente_id, servicio_id, fecha_inicio, fecha_entrega_estimada, descripcion, progreso_general, estado) 
+                   VALUES (?, ?, ?, ?, ?, ?, ?, 0, 'activo')`;
+
+    db.run(query, [id, nombre, cliente_id, servicio_id, fecha_inicio, fecha_entrega_estimada, descripcion], function (err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.status(201).json({ id, message: 'Proyecto creado' });
+    });
+});
+
+// Update project (PATCH)
+router.patch('/:id', (req, res) => {
+    const { id } = req.params;
+    const fields = Object.keys(req.body);
+    const values = Object.values(req.body);
+
+    if (fields.length === 0) return res.status(400).json({ error: 'No fields to update' });
+
+    const setClause = fields.map(f => `${f} = ?`).join(', ');
+
+    db.run(`UPDATE proyectos SET ${setClause} WHERE id = ?`, [...values, id], function (err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ message: 'Proyecto actualizado' });
+    });
+});
+
+// Get project team
+router.get('/:id/equipo', (req, res) => {
+    const { id } = req.params;
+    const query = `
+        SELECT u.*, pe.rol_proyecto 
+        FROM usuarios_equipo u
+        JOIN proyectos_equipo pe ON u.id = pe.usuario_id
+        WHERE pe.proyecto_id = ?
+    `;
+    db.all(query, [id], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows);
+    });
+});
+
+// Assign member to project
+router.post('/:id/equipo', (req, res) => {
+    const { id: proyecto_id } = req.params;
+    const { usuario_id, rol_proyecto } = req.body;
+
+    const query = `INSERT INTO proyectos_equipo (proyecto_id, usuario_id, rol_proyecto) VALUES (?, ?, ?)
+                   ON CONFLICT(proyecto_id, usuario_id) DO UPDATE SET rol_proyecto = excluded.rol_proyecto`;
+
+    db.run(query, [proyecto_id, usuario_id, rol_proyecto], function (err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.status(201).json({ message: 'Miembro asignado al proyecto' });
+    });
+});
+
+// Remove member from project
+router.delete('/:id/equipo/:usuario_id', (req, res) => {
+    const { id: proyecto_id, usuario_id } = req.params;
+    db.run('DELETE FROM proyectos_equipo WHERE proyecto_id = ? AND usuario_id = ?', [proyecto_id, usuario_id], function (err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ message: 'Miembro removido del proyecto' });
+    });
+});
+
+module.exports = router;

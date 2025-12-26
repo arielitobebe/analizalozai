@@ -1,0 +1,111 @@
+ARCHIVO: server\routes\cotizaciones.routes.js
+================================================================================
+
+const express = require('express');
+const router = express.Router();
+const db = require('../db');
+const { v4: uuidv4 } = require('uuid');
+
+// Get all quotes
+router.get('/', (req, res) => {
+    const query = `
+        SELECT c.*, cl.nombre_negocio as cliente_nombre 
+        FROM cotizaciones c
+        LEFT JOIN clientes cl ON c.cliente_id = cl.id
+        ORDER BY c.fecha DESC
+    `;
+    db.all(query, (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows);
+    });
+});
+
+// Get single quote with items
+router.get('/:id', (req, res) => {
+    const { id } = req.params;
+    db.get('SELECT c.*, cl.nombre_negocio as cliente_nombre, cl.correo_electronico as cliente_email FROM cotizaciones c LEFT JOIN clientes cl ON c.cliente_id = cl.id WHERE c.id = ?', [id], (err, quote) => {
+        if (err) return res.status(500).json({ error: err.message });
+        if (!quote) return res.status(404).json({ error: 'Cotización no encontrada' });
+
+        db.all('SELECT * FROM cotizacion_items WHERE cotizacion_id = ?', [id], (err, items) => {
+            if (err) return res.status(500).json({ error: err.message });
+            quote.items = items;
+            res.json(quote);
+        });
+    });
+});
+
+// Create quote
+router.post('/', (req, res) => {
+    const { cliente_id, fecha, vencimiento, subtotal, iva, total, notas, items } = req.body;
+    const id = uuidv4();
+    const folio = `COT-${Math.floor(1000 + Math.random() * 9000)}`;
+
+    const query = `INSERT INTO cotizaciones (id, folio, cliente_id, fecha, vencimiento, subtotal, iva, total, notas, estado) 
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'borrador')`;
+
+    db.run(query, [id, folio, cliente_id, fecha, vencimiento, subtotal, iva, total, notas], function (err) {
+        if (err) return res.status(500).json({ error: err.message });
+
+        // Insert items
+        const stmt = db.prepare('INSERT INTO cotizacion_items (id, cotizacion_id, descripcion, cantidad, precio_unitario, importe) VALUES (?, ?, ?, ?, ?, ?)');
+        items.forEach(item => {
+            stmt.run([uuidv4(), id, item.descripcion, item.cantidad, item.precio_unitario, item.importe]);
+        });
+        stmt.finalize();
+
+        res.status(201).json({ id, folio, message: 'Cotización creada' });
+    });
+});
+
+// Update quote status
+router.patch('/:id/status', (req, res) => {
+    const { id } = req.params;
+    const { estado } = req.body;
+    db.run('UPDATE cotizaciones SET estado = ? WHERE id = ?', [estado, id], function (err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ message: 'Estado actualizado' });
+    });
+});
+
+// Convert Quote to Sale
+router.post('/:id/convertir', (req, res) => {
+    const { id } = req.params;
+
+    // 1. Get quote details
+    db.get('SELECT * FROM cotizaciones WHERE id = ?', [id], (err, quote) => {
+        if (err) return res.status(500).json({ error: err.message });
+        if (!quote) return res.status(404).json({ error: 'Cotización no encontrada' });
+
+        if (quote.estado === 'aceptada' && req.body.force !== true) {
+            // Already accepted, but we continue with conversion if requested
+        }
+
+        const ventaId = uuidv4();
+        const numeroVenta = `VTA-${Math.floor(10000 + Math.random() * 90000)}`;
+
+        db.serialize(() => {
+            // 2. Create Sale
+            db.run(`INSERT INTO ventas (id, numero_venta, cliente_id, monto_total, estatus) VALUES (?, ?, ?, ?, ?)`,
+                [ventaId, numeroVenta, quote.cliente_id, quote.total, 'pagada']);
+
+            // 3. Update Quote status
+            db.run('UPDATE cotizaciones SET estado = ? WHERE id = ?', ['aceptada', id]);
+
+            // 4. Create Financial Record (Income)
+            const metaId = uuidv4();
+            db.run(`INSERT INTO registros_financieros (id, tipo, categoria, monto, concepto, descripcion) VALUES (?, ?, ?, ?, ?, ?)`,
+                [metaId, 'ingreso', 'Ventas', quote.total, `Venta desde Cotización ${quote.folio}`, `Conversión automática de cotización ${quote.folio}`]);
+
+            // 5. Update Client Balance (Optional but good)
+            db.run('UPDATE clientes SET monto_total = monto_total + ?, monto_pagado = monto_pagado + ? WHERE id = ?',
+                [quote.total, quote.total, quote.cliente_id], (err) => {
+                    if (err) console.error('Error updating client balance:', err);
+                });
+        });
+
+        res.json({ success: true, ventaId, numeroVenta, message: 'Cotización convertida en venta con éxito' });
+    });
+});
+
+module.exports = router;

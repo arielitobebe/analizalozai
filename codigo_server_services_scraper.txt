@@ -1,0 +1,563 @@
+ARCHIVO: server\services\scraper.js
+================================================================================
+
+const puppeteer = require('puppeteer-extra');
+const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+
+puppeteer.use(StealthPlugin());
+
+const Scraper = {
+    userAgents: [
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0'
+    ],
+
+    sleep: (min, max) => {
+        const time = Math.floor(Math.random() * (max - min + 1)) + min;
+        return new Promise(resolve => setTimeout(resolve, time));
+    },
+
+    // TEMPORALMENTE DESACTIVADO - Causa cuelgues en el scraper
+    // Función auxiliar para visitar la web del negocio y buscar redes sociales
+    /*
+    async analyzeWebsite(browser, url) {
+        if (!url) return { facebook: false, instagram: false, tiktok: false, email: '', facebook_url: '', instagram_url: '', tiktok_url: '' };
+
+        const socialData = { facebook: false, instagram: false, tiktok: false, email: '', facebook_url: '', instagram_url: '', tiktok_url: '' };
+        let page = null;
+
+        try {
+            page = await browser.newPage();
+            await page.setUserAgent(this.userAgents[Math.floor(Math.random() * this.userAgents.length)]);
+
+            await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 15000 });
+
+            const content = await page.content();
+
+            // Extraer URLs completas de redes sociales
+            const facebookRegex = /https?:\/\/(www\.|m\.)?facebook\.com\/[a-zA-Z0-9._-]+/gi;
+            const instagramRegex = /https?:\/\/(www\.)?instagram\.com\/[a-zA-Z0-9._-]+/gi;
+            const tiktokRegex = /https?:\/\/(www\.)?tiktok\.com\/@[a-zA-Z0-9._-]+/gi;
+
+            const fbMatches = content.match(facebookRegex);
+            const igMatches = content.match(instagramRegex);
+            const ttMatches = content.match(tiktokRegex);
+
+            if (fbMatches && fbMatches.length > 0) {
+                socialData.facebook = true;
+                socialData.facebook_url = fbMatches[0];
+            }
+
+            if (igMatches && igMatches.length > 0) {
+                socialData.instagram = true;
+                socialData.instagram_url = igMatches[0];
+            }
+
+            if (ttMatches && ttMatches.length > 0) {
+                socialData.tiktok = true;
+                socialData.tiktok_url = ttMatches[0];
+            }
+
+            console.log(`[Nebula] Redes encontradas en website: FB=${!!socialData.facebook_url}, IG=${!!socialData.instagram_url}, TT=${!!socialData.tiktok_url}`);
+
+            // Búsqueda de EMAIL (Regex) - SOLO si parece un email real
+            const emailRegex = /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/gi;
+            const emails = content.match(emailRegex);
+
+            if (emails && emails.length > 0) {
+                // FILTRO ESTRICTO: Excluir emails basura de Google y servicios
+                const filtered = emails.filter(e => {
+                    const lower = e.toLowerCase();
+                    return !lower.includes('wix.com') &&
+                        !lower.includes('example.com') &&
+                        !lower.includes('sentry.io') &&
+                        !lower.includes('squarespace') &&
+                        !lower.includes('googleapis') &&
+                        !lower.includes('intl-segmenter') && // Email basura de Google
+                        !lower.includes('google.com') &&
+                        !lower.includes('gstatic') &&
+                        !lower.includes('doubleclick') &&
+                        !lower.includes('schema.org') &&
+                        lower.length < 50; // Emails muy largos suelen ser falsos
+                });
+
+                if (filtered.length > 0) {
+                    // Preferir emails con palabras clave de contacto
+                    const priority = filtered.find(e =>
+                        e.includes('info') ||
+                        e.includes('contacto') ||
+                        e.includes('contact') ||
+                        e.includes('ventas') ||
+                        e.includes('reservas') ||
+                        e.includes('hola')
+                    );
+                    socialData.email = priority || filtered[0];
+                    console.log(`[Nebula] Email seleccionado: ${socialData.email}`);
+                }
+            }
+
+        } catch (error) {
+            console.log(`[Nebula Scraper] No se pudo analizar sitio web ${url}: ${error.message}`);
+        } finally {
+            if (page) await page.close();
+        }
+        return socialData;
+    }
+    */
+
+    calculateScore(lead) {
+        let score = 0;
+        let analysis = [];
+        let services = [];
+        const categoria = (lead.categoria || '').toLowerCase();
+
+        // 1. ANÁLISIS DE SITIO WEB
+        if (!lead.tiene_web) {
+            score += 40;
+            analysis.push("❌ Sin presencia digital");
+
+            // Servicios específicos NOVA por categoría
+            if (categoria.includes('restaurant') || categoria.includes('café') || categoria.includes('coffee')) {
+                services.push("Landing Page Gastronómica NOVA", "Menú Digital QR");
+            } else if (categoria.includes('gym') || categoria.includes('fitness')) {
+                services.push("Landing Page Fitness NOVA", "Sistema de Reservas");
+            } else if (categoria.includes('salon') || categoria.includes('spa') || categoria.includes('beauty')) {
+                services.push("Landing Page Premium NOVA", "Sistema de Citas Online");
+            } else {
+                services.push("Landing Page Profesional NOVA", "Desarrollo Web Responsivo");
+            }
+        } else {
+            score += 5;
+            analysis.push("✅ Tiene sitio web (oportunidad de mejora)");
+        }
+
+
+        // 2. ANÁLISIS DE RATING
+        if (lead.rating_google === 0) {
+            score += 10;
+            analysis.push("⚠️ Sin reseñas en Google");
+        } else if (lead.rating_google < 4.0) {
+            score += 25;
+            analysis.push(`⚠️ Rating ${lead.rating_google}/5 - Reputación en riesgo`);
+            services.push("Gestión de Reputación Digital", "Estrategia de Reseñas");
+        } else if (lead.rating_google >= 4.5) {
+            score += 5;
+            analysis.push(`⭐ Excelente rating ${lead.rating_google}/5 - Testimonios aprovechables`);
+            services.push("Video Testimonial", "Case Study Premium");
+        }
+
+        // 3. ANÁLISIS DE REDES SOCIALES (contextual por categoría)
+        const tieneFB = lead.tiene_facebook;
+        const tieneIG = lead.tiene_instagram;
+        const tieneTT = lead.tiene_tiktok;
+
+        if (!tieneFB && !tieneIG && !tieneTT) {
+            score += 35;
+            analysis.push("❌ CERO presencia en redes sociales");
+            services.push("Gestión Integral de Redes NOVA 360", "Content Marketing", "Fotografía de Producto");
+        } else {
+            // Instagram crítico para negocios visuales
+            if (!tieneIG) {
+                if (categoria.includes('restaurant') || categoria.includes('coffee') || categoria.includes('food') || categoria.includes('café')) {
+                    score += 20;
+                    analysis.push("❌ Sin Instagram - CRÍTICO para gastronómicos");
+                    services.push("Gestión Instagram Gastronómica", "Fotografía de Platillos", "Reels de Comida");
+                } else if (categoria.includes('gym') || categoria.includes('salon') || categoria.includes('spa')) {
+                    score += 18;
+                    analysis.push("❌ Sin Instagram - Pierde oportunidad visual");
+                    services.push("Instagram para Transformaciones", "Reels Before/After");
+                } else {
+                    score += 15;
+                    analysis.push("❌ Falta presencia en Instagram");
+                    services.push("Gestión de Instagram NOVA");
+                }
+            }
+
+            // TikTok para viralidad
+            if (!tieneTT) {
+                score += 12;
+                analysis.push("❌ Sin TikTok - Audiencia joven desaprovechada");
+                services.push("Estrategia TikTok", "Video Corto Viral");
+            }
+
+            // Facebook para comunidad
+            if (!tieneFB) {
+                score += 8;
+                analysis.push("⚠️ Sin Facebook - Comunidad limitada");
+                services.push("Gestión de Facebook Ads", "Community Building");
+            }
+        }
+
+        // 4. SERVICIOS ESPECIALIZADOS POR CATEGORÍA
+        if (categoria.includes('restaurant') || categoria.includes('café') || categoria.includes('coffee') || categoria.includes('food')) {
+            services.push("Sistema POS Gastronómico", "Gestión de Mermas", "KDS (Pantallas de Cocina)");
+
+            if (lead.rating_google > 4.3) {
+                services.push("Marketing de Influencers Foodies");
+            }
+        } else if (categoria.includes('gym') || categoria.includes('fitness') || categoria.includes('crossfit')) {
+            services.push("CRM Fitness", "App de Seguimiento", "Animación 3D de Ejercicios");
+        } else if (categoria.includes('hotel') || categoria.includes('airbnb') || categoria.includes('hospedaje')) {
+            services.push("Sistema de Reservas", "Tours Virtuales 3D", "OTA Integration");
+        } else if (categoria.includes('salon') || categoria.includes('spa') || categoria.includes('beauty') || categoria.includes('estetica')) {
+            services.push("Sistema de Citas", "Programa de Lealtad", "Branding Premium");
+        } else if (categoria.includes('school') || categoria.includes('curso') || categoria.includes('academia')) {
+            services.push("Embudo de Conversión", "Landing Page Educativa", "Email Marketing Automation");
+        }
+
+        // 5. SCORING MEJORADO: Factores adicionales
+        // Negocios nuevos (pocas reseñas) son más receptivos
+        if (lead.num_resenas && lead.num_resenas < 50) {
+            score += 8;
+            analysis.push("🆕 Negocio nuevo - Alta receptividad a servicios");
+        }
+
+        // Inversión en imagen visual (fotos subidas)
+        if (lead.photo_count && lead.photo_count > 50) {
+            score += 5;
+            analysis.push("📸 Alta inversión visual - Valora contenido de calidad");
+            services.push("Fotografía Profesional NOVA", "Producción de Video");
+        } else if (lead.photo_count && lead.photo_count < 10) {
+            score += 10;
+            analysis.push("📸 Pocas fotos - Necesita refresh visual");
+            services.push("Sesión Fotográfica de Producto");
+        }
+
+        // Tamaño de negocio afecta prioridad
+        if (lead.tamano_negocio === 'grande') {
+            score += 5;
+            analysis.push("🏢 Negocio establecido - Presupuesto mayor");
+            services.push("Soluciones Enterprise", "CRM Personalizado");
+        } else if (lead.tamano_negocio === 'pequeño') {
+            score += 3;
+            analysis.push("🏪 Negocio pequeño - Paketes accesibles ideales");
+        }
+
+        // SIEMPRE OFRECER CONSULTORÍA
+        services.push("Consultoría Estratégica IA NOVA");
+
+        // Cap score at 100
+        score = Math.min(score, 100);
+
+        // Determinar prioridad
+        let prioridad = 'low';
+        if (score > 70) prioridad = 'high';
+        else if (score > 40) prioridad = 'medium';
+
+        // Construir análisis final
+        const analisisCompleto = `OPORTUNIDAD NOVA: ${analysis.join(' • ')}`;
+
+        return {
+            score,
+            analisis_ia: analisisCompleto,
+            servicios_recomendados: [...new Set(services)], // Eliminar duplicados
+            prioridad
+        };
+    },
+
+    async searchGoogleMaps(query, maxResults = 5) {
+        let browser = null;
+        try {
+            console.log(`[Nebula] Iniciando búsqueda PROFUNDA: "${query}"`);
+
+            browser = await puppeteer.launch({
+                headless: "new",
+                args: [
+                    '--no-sandbox',
+                    '--disable-setuid-sandbox',
+                    '--disable-web-security',
+                    '--disable-features=IsolateOrigins,site-per-process'
+                ]
+            });
+
+            const page = await browser.newPage();
+            const randomUA = this.userAgents[Math.floor(Math.random() * this.userAgents.length)];
+            await page.setUserAgent(randomUA);
+            await page.setViewport({ width: 1366, height: 768 });
+
+            // Buscar en Google Maps
+            await page.goto(`https://www.google.com/maps/search/${encodeURIComponent(query)}`, {
+                waitUntil: 'networkidle2',
+                timeout: 15000
+            });
+
+            await this.sleep(1000, 2000);
+
+            // Obtener lista de resultados (clickeables)
+            const resultElements = await page.$$('a[href*="/maps/place/"]');
+            console.log(`[Nebula] Encontrados ${resultElements.length} resultados. Procesando Top ${maxResults}...`);
+
+            const finalLeads = [];
+            const limit = Math.min(resultElements.length, maxResults);
+
+            for (let i = 0; i < limit; i++) {
+                console.log(`\n[Nebula] ========== PROCESANDO RESULTADO ${i + 1}/${limit} ==========`);
+
+                // Re-obtener elementos en cada iteración
+                const results = await page.$$('a[href*="/maps/place/"]');
+                console.log(`[Nebula] Re-obtenidos ${results.length} elementos en iteración ${i + 1}`);
+
+                if (!results[i]) {
+                    console.log(`[Nebula] ⚠️ Elemento ${i} no existe, saltando...`);
+                    continue;
+                }
+
+                try {
+                    //Click en el resultado
+                    console.log(`[Nebula] Haciendo click en elemento ${i}...`);
+                    await results[i].click();
+                    console.log(`[Nebula] ✅ Click exitoso, esperando panel...`);
+                    await this.sleep(3000, 5000);
+
+                    console.log(`[Nebula] Extrayendo datos del panel...`);
+                    const businessData = await page.evaluate(() => {
+                        const data = {
+                            name: '',
+                            rating: 0,
+                            address: '',
+                            phone: '',
+                            website: '',
+                            mapsUrl: window.location.href
+                        };
+
+                        // Nombre del negocio - ESTRATEGIA ROBUSTA
+                        // 1. Intentar h1 principal
+                        let nameEl = document.querySelector('h1.DUwDvf');//Clase actual de Google Maps
+                        if (!nameEl) nameEl = document.querySelector('h1[itemprop="name"]');
+                        if (!nameEl) nameEl = document.querySelector('h1.qBF1Pd');
+                        if (!nameEl) {
+                            // 2. Cualquier h1 que no sea genérico
+                            const allH1 = Array.from(document.querySelectorAll('h1'));
+                            nameEl = allH1.find(h => {
+                                const text = h.textContent.trim();
+                                return text.length > 2 && !text.includes('Google') && !text.includes('Maps');
+                            });
+                        }
+
+                        if (nameEl) {
+                            data.name = nameEl.textContent.trim();
+                            console.log('[SCRAPER] Nombre extraído:', data.name);
+                        } else {
+                            console.warn('[SCRAPER] No se pudo extraer nombre');
+                        }
+
+                        // Rating - MEJORADO
+                        const ratingText = document.querySelector('[role="img"]')?.getAttribute('aria-label');
+                        if (ratingText) {
+                            const match = ratingText.match(/(\d+[.,]\d+)/);
+                            if (match) data.rating = parseFloat(match[1].replace(',', '.'));
+                        }
+
+                        // Dirección - MEJORADO
+                        const addressButton = document.querySelector('button[data-item-id="address"]');
+                        if (addressButton) {
+                            const ariaLabel = addressButton.getAttribute('aria-label');
+                            if (ariaLabel) {
+                                data.address = ariaLabel.replace(/^.*?:\s*/, '').trim();
+                            }
+                        }
+                        if (!data.address) {
+                            // Fallback: buscar cualquier elemento con "dirección" o coordenadas
+                            const addressDivs = Array.from(document.querySelectorAll('[class*="rogA2c"]'));
+                            if (addressDivs.length > 0) {
+                                data.address = addressDivs[0].textContent.trim();
+                            }
+                        }
+
+                        // Teléfono - MEJORADO
+                        const phoneButton = document.querySelector('button[data-item-id^="phone"]');
+                        if (phoneButton) {
+                            const phoneLabel = phoneButton.getAttribute('aria-label');
+                            if (phoneLabel) {
+                                data.phone = phoneLabel.replace(/^.*?:\s*/, '').trim();
+                            }
+                        }
+                        if (!data.phone) {
+                            // Fallback: buscar link tel:
+                            const telLink = document.querySelector('a[href^="tel:"]');
+                            if (telLink) {
+                                data.phone = telLink.textContent.trim() || telLink.href.replace('tel:', '');
+                            }
+                        }
+
+                        // Website - MEJORADO
+                        const websiteLinks = Array.from(document.querySelectorAll('a[data-item-id^="authority"]'));
+                        if (websiteLinks.length > 0) {
+                            data.website = websiteLinks[0].href;
+                        }
+                        if (!data.website) {
+                            // Fallback: buscar cualquier link externo
+                            const externalLinks = Array.from(document.querySelectorAll('a[href^="http"]'));
+                            const validLink = externalLinks.find(link =>
+                                !link.href.includes('google.com') &&
+                                !link.href.includes('goo.gl') &&
+                                !link.href.includes('maps')
+                            );
+                            if (validLink) data.website = validLink.href;
+                        }
+
+                        // REDES SOCIALES - Capturadas desde Google Maps (SIN visitar sitio web)
+                        data.facebook_url = '';
+                        data.instagram_url = '';
+                        data.tiktok_url = '';
+
+                        const allLinks = Array.from(document.querySelectorAll('a[href]'));
+                        allLinks.forEach(link => {
+                            const href = link.href;
+                            if (href.includes('facebook.com/') && !data.facebook_url) {
+                                data.facebook_url = href;
+                            } else if (href.includes('instagram.com/') && !data.instagram_url) {
+                                data.instagram_url = href;
+                            } else if (href.includes('tiktok.com/@') && !data.tiktok_url) {
+                                data.tiktok_url = href;
+                            }
+                        });
+
+                        // NUEVO: Detección de tamaño de negocio (reviewCount y photoCount)
+                        try {
+                            const reviewText = document.querySelector('[aria-label*="reseñas"]')?.textContent;
+                            const match = reviewText?.match(/(\d+(?:,\d+)*)\s*reseñas?/);
+                            data.reviewCount = match ? parseInt(match[1].replace(/,/g, '')) : 0;
+                        } catch (e) { /* ignore */ }
+
+                        try {
+                            const photoButton = document.querySelector('button[aria-label*="fotos"]');
+                            const match = photoButton?.textContent?.match(/(\d+(?:,\d+)*)/);
+                            data.photoCount = match ? parseInt(match[1].replace(/,/g, '')) : 0;
+                        } catch (e) { /* ignore */ }
+
+                        return data;
+                    });
+
+                    if (!businessData.name) {
+                        console.log('[Nebula] No se pudo extraer nombre, saltando...');
+                        continue;
+                    }
+
+                    console.log('[Nebula] 📊 Datos extraídos:', {
+                        nombre: businessData.name,
+                        rating: businessData.rating,
+                        reviews: businessData.reviewCount,
+                        photos: businessData.photoCount
+                    });
+
+                    // Determinar tamaño del negocio
+                    let businessSize = 'pequeño';
+                    if (businessData.reviewCount > 500 || businessData.photoCount > 100) {
+                        businessSize = 'grande';
+                    } else if (businessData.reviewCount > 100 || businessData.photoCount > 30) {
+                        businessSize = 'mediano';
+                    }
+
+                    console.log(`[Nebula] Redes en GMaps - FB: ${!!businessData.facebook_url}, IG: ${!!businessData.instagram_url}, TT: ${!!businessData.tiktok_url}`);
+
+                    // WEBSITE ANALYSIS DESACTIVADO TEMPORALMENTE
+                    // Solo usamos redes sociales encontradas directamente en Google Maps
+                    console.log(`[Nebula] Usando solo redes de GMaps (website analysis desactivado)`);
+                    /*
+                    // ANÁLISIS OBLIGATORIO DE WEBSITE
+                    // Muchos negocios NO publican redes sociales en Google Maps, pero SÍ las tienen en su sitio web
+                    if (businessData.website) {
+                        console.log(`[Nebula] Analizando website para redes sociales: ${businessData.website}`);
+                        try {
+                            const socialData = await this.analyzeWebsite(browser, businessData.website);
+                            // Merge social URLs from website (solo si no estaban en GMaps)
+                            if (!businessData.facebook_url && socialData.facebook_url) {
+                                businessData.facebook_url = socialData.facebook_url;
+                            }
+                            if (!businessData.instagram_url && socialData.instagram_url) {
+                                businessData.instagram_url = socialData.instagram_url;
+                            }
+                            if (!businessData.tiktok_url && socialData.tiktok_url) {
+                                businessData.tiktok_url = socialData.tiktok_url;
+                            }
+                            console.log(`[Nebula] Después de web - FB: ${!!businessData.facebook_url}, IG: ${!!businessData.instagram_url}, TT: ${!!businessData.tiktok_url}`);
+                        } catch (e) {
+                            console.log(`[Nebula] Error al analizar website: ${e.message}`);
+                        }
+                    } else {
+                        console.log(`[Nebula] No hay website para analizar`);
+                    }
+                    */
+
+                    // Construir lead completo
+                    // Extraer categoría del query si está disponible
+                    const categoria = query.toLowerCase().split(' ').pop() || 'General';
+
+                    const leadTemp = {
+                        rating_google: businessData.rating,
+                        tiene_web: !!businessData.website,
+                        tiene_facebook: !!businessData.facebook_url,
+                        tiene_instagram: !!businessData.instagram_url,
+                        tiene_tiktok: !!businessData.tiktok_url,
+                        categoria: categoria || 'General',
+                        num_resenas: businessData.reviewCount || 0,
+                        photo_count: businessData.photoCount || 0,
+                        tamano_negocio: businessSize
+                    };
+
+                    // Calcular Score e Inteligencia
+                    const intelligence = this.calculateScore(leadTemp);
+
+                    // ============================================
+                    // BONUS POR REDES SOCIALES (Ya no obligatorio)
+                    // Preferimos leads con redes pero mostramos todos
+                    // ============================================
+                    const socialMediaCount = [
+                        businessData.facebook_url,
+                        businessData.instagram_url,
+                        businessData.tiktok_url
+                    ].filter(Boolean).length;
+
+                    if (socialMediaCount > 0) {
+                        console.log(`[Nebula] ✅ ${businessData.name} - Tiene ${socialMediaCount} redes sociales`);
+                    } else {
+                        console.log(`[Nebula] ⚠️ ${businessData.name} - Sin redes sociales (score reducido pero se incluye)`);
+                    }
+
+                    finalLeads.push({
+                        id: Buffer.from(businessData.name + Date.now()).toString('base64').substring(0, 10),
+                        nombre: businessData.name,
+                        rating_google: businessData.rating,
+                        delegacion: 'Detectando..',
+                        categoria: 'Detectando..',
+                        direccion: businessData.address || 'No disponible',
+                        telefono: businessData.phone || 'No disponible',
+                        website: businessData.website || '',
+                        maps_url: businessData.mapsUrl || '',
+                        tiene_web: leadTemp.tiene_web,
+                        tiene_facebook: leadTemp.tiene_facebook,
+                        tiene_instagram: leadTemp.tiene_instagram,
+                        tiene_tiktok: leadTemp.tiene_tiktok,
+                        facebook_url: businessData.facebook_url || '',
+                        instagram_url: businessData.instagram_url || '',
+                        tiktok_url: businessData.tiktok_url || '',
+                        score_oportunidad: intelligence.score,
+                        analisis_ia: intelligence.analisis_ia,
+                        servicios_recomendados: intelligence.servicios_recomendados,
+                        prioridad: intelligence.prioridad,
+                        email: leadTemp.email || ''
+                    });
+
+                    // Delay entre leads
+                    await this.sleep(2000, 4000);
+
+                } catch (err) {
+                    console.error(`[Nebula] Error procesando resultado ${i + 1}:`, err.message);
+                }
+            }
+
+            console.log(`[Nebula] ✅ Extracción profunda completada: ${finalLeads.length} leads procesados.`);
+            return finalLeads;
+
+        } catch (error) {
+            console.error('[Nebula] Error en Scraper:', error);
+            throw error;
+        } finally {
+            if (browser) await browser.close();
+        }
+    }
+};
+
+module.exports = Scraper;

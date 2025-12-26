@@ -1,0 +1,47 @@
+ARCHIVO: server\index.js
+================================================================================
+
+const express = require('express');
+const app = express();
+const PORT = process.env.PORT || 9023;
+const cors = require('cors');
+const path = require('path');
+const db = require('./db');
+
+const nebulaRoutes = require('./routes/nebula');
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+app.use(express.static(path.join(__dirname, '../public')));
+app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
+
+// Routes
+app.use('/api/nebula', nebulaRoutes); // Nueva ruta para Nebulas
+app.use('/api/leads', require('./routes/leads.routes'));
+app.use('/api/leads', require('./routes/leads-advanced.routes')); // Archivos y seguimiento de leads
+app.use('/api/recordatorios', require('./routes/recordatorios.routes')); // Sistema de recordatorios
+app.use('/api/clientes', require('./routes/clientes.routes'));
+app.use('/api/clientes', require('./routes/pagos.routes')); // Payment routes nested under clients
+app.use('/api/clientes', require('./routes/clientes-archivos.routes')); // Files routes
+app.use('/api/clientes', require('./routes/clientes-notas.routes')); // Notes routes
+app.use('/api/equipo', require('./routes/equipo.routes'));
+app.use('/api/proyectos', require('./routes/proyectos.routes'));
+app.use('/api/proyectos', require('./routes/proyectos-gastos.routes')); // Proyectos gastos routes
+app.use('/api/proyectos', require('./routes/proyectos-fases.routes')); // Proyectos phases routes
+app.use('/api/servicios', require('./routes/servicios.routes'));
+app.use('/api/tareas', require('./routes/tareas.routes'));
+app.use('/api/tareas', require('./routes/tareas-archivos.routes')); // Archivos de tareas
+app.use('/api/tareas', require('./routes/tareas-dependencias.routes')); // Dependencias de tareas
+app.use('/api/ventas', require('./routes/ventas.routes'));
+app.use('/api/finanzas', require('./routes/finanzas.routes'));
+app.use('/api/config', require('./routes/config.routes'));
+app.use('/api/cotizaciones', require('./routes/cotizaciones.routes'));
+app.use('/api/community', require('./routes/community.routes'));
+
+// Init DB
+// db.init(); // db.js auto-inits on require
+
+app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+});

@@ -1,0 +1,509 @@
+ARCHIVO: public\js\nebula.js
+================================================================================
+
+const Nebula = {
+    // 16 Delegaciones de CDMX
+    delegaciones: [
+        'Cuauhtémoc', 'Miguel Hidalgo', 'Benito Juárez', 'Coyoacán',
+        'Álvaro Obregón', 'Tlalpan', 'Azcapotzalco', 'Iztapalapa',
+        'Gustavo A. Madero', 'Venustiano Carranza', 'Iztacalco',
+        'Magdalena Contreras', 'Cuajimalpa', 'Xochimilco', 'Tláhuac', 'Milpa Alta'
+    ],
+
+    // Top 20 Colonias por Delegación
+    coloniasPorDelegacion: {
+        'Cuauhtémoc': ['Toda la delegación', 'Roma Norte', 'Roma Sur', 'Condesa', 'Hipódromo', 'Juárez', 'Centro Histórico', 'Doctores', 'Obrera', 'Guerrero', 'Tabacalera', 'Cuauhtémoc', 'Morelos', 'Algarín', 'Esperanza', 'Paulino Navarro', 'Tránsito', 'Buenos Aires', 'Santa María La Ribera', 'Buenavista'],
+        'Miguel Hidalgo': ['Toda la delegación', 'Polanco', 'Lomas de Chapultepec', 'Anzures', 'Granada', 'Ampliación Granada', 'Verónica Anzures', 'Popo', 'Escandón', 'Tacuba', 'Irrigación', 'Reforma Social', 'San Miguel Chapultepec', 'Pensil', 'Argentina Antigua', 'Periodista', 'Popotla', 'San Joaquín', 'Tlaxpana', 'Un Hogar Para Nosotros'],
+        'Benito Juárez': ['Toda la delegación', 'Del Valle Centro', 'Del Valle Norte', 'Del Valle Sur', 'Nápoles', 'Narvarte', 'Portales', 'Xoco', 'Acacias', 'Imperial', 'San José Insurgentes', 'Mixcoac', 'Insurgentes San Borja', 'Crédito Constructor', 'Santa Cruz Atoyac', 'Atenor Salas', 'Letrán Valle', 'Moderna', 'Niños Héroes', 'Piedad Narvarte'],
+        'Coyoacán': ['Toda la delegación', 'Coyoacán Centro', 'Del Carmen', 'San Diego Churubusco', 'Xoco', 'Campestre Churubusco', 'Copilco Universidad', 'Villa Coyoacán', 'Educación', 'Los Reyes', 'San Francisco Culhuacán', 'Cafetales', 'Pedregal de Santo Domingo', 'Santa Úrsula Coapa', 'Prado Churubusco', 'Carmen Serdán', 'Culhuacán CTM', 'Aculco', 'El Rosario', 'Ajusco'],
+        'Álvaro Obregón': ['Toda la delegación', 'San Angel', 'San Angel Inn', 'Tizapán', 'Florida', 'Altavista', 'Guadalupe Inn', 'San José del Olivar', 'Santa Fe', 'Desierto de los Leones', 'Tetelpan', 'Olivar del Conde', 'Carola', 'Preconcreto', 'Molino de Rosas', 'Los Alpes', 'Santa Lucía', 'Colina del Sur', 'Tolteca', 'Torres de Potrero'],
+        'Tlalpan': ['Toda la delegación', 'Pedregal', 'Jardines del Pedregal', 'Héroes de Padierna', 'Fuentes del Pedregal', 'Miguel Hidalgo', 'Pueblo Quieto', 'San Fernando', 'Chimalcoyoc', 'Parque del Pedregal', 'Tlalpan Centro', 'Toriello Guerra', 'Villa Coapa', 'Santa Úrsula Xitla', 'Ampliación Fuentes del Pedregal', 'Floresta Coyoacán', 'Isidro Fabela', 'Belvedere', 'Cantera Puente de Piedra', 'La Magdalena'],
+        'Azcapotzalco': ['Toda la delegación', 'Clavería', 'Pro-Hogar', 'San Álvaro', 'San Miguel Amantla', 'Santo Domingo', 'Reynosa Tamaulipas', 'Pasteros', 'Ángel Zimbrón', 'Trabajadores del Hierro', 'Petrolera', 'San Martín Xochinahuac', 'Nueva España', 'Santa María Maninalco', 'Industrial Vallejo', 'Providencia', 'Sindicato Mexicano de Electricistas', 'Nextengo', 'Nueva el Rosario', 'Tlatilco'],
+        'Iztapalapa': ['Toda la delegación', 'Santa Cruz Meyehualco', 'Chinampac de Juárez', 'Consejo Agrarista Mexicano', 'Granjas México', 'Escuadrón 201', 'Gabriel Ramos Millán', 'Lomas de San Lorenzo', 'Jardines de San Lorenzo', 'San Lorenzo Tezonco', 'Pueblo Culhuacán', 'Fuego Nuevo', 'Paraje San Juan', 'Palmitas', 'Desarrollo Urbano Quetzalcóatl', 'Los Ángeles Apanoaya', 'Santa Martha Acatitla', 'Ampliación Emiliano Zapata', 'Valle del Sur', 'Tenorios'],
+        'Gustavo A. Madero': ['Toda la delegación', 'Lindavista', 'Valle del Tepeyac', 'Magdalena de las Salinas', 'Industrial', 'Guadalupe Insurgentes', 'Nueva Industrial Vallejo', 'Del Obrero', 'Montevideo', 'Estrella', 'Bondojito', 'Santa Isabel Tola', 'Cuautepec Barrio Alto', 'Tlacamaca', 'Panamericana', 'Gabriel Hernández', 'Martín Carrera', 'Villa Gustavo A. Madero', 'Aragón La Villa', 'San Juan de Aragón'],
+        'Venustiano Carranza': ['Toda la delegación', 'Jardín Balbuena', 'Moctezuma 2a Sección', '10 de Mayo', 'Aeronáutica Civil', 'Aviación Civil', 'Damián Carmona', 'Federal', 'México-Puebla', 'Nicolás Bravo', 'Penitenciaría', 'Pueblo Magdalena Mixiuhca', 'Sevilla', 'Valentín Gómez Farías', 'Arenal 1a Sección', 'Caracol', 'Cuchilla Pantitlán', 'Jamaica', 'Lorenzo Boturini', 'Merced Balbuena'],
+        'Iztacalco': ['Toda la delegación', 'Tlacoquemécatl del Valle', 'Del Valle Centro', 'Granjas México', 'Los Reyes', 'San Pedro Iztacalco', 'Viaducto Piedad', 'Santa Anita', 'Zapata Vela', 'Gabriel Ramos Millán', 'Agrícola Oriental', 'Pantitlán', 'Cuchilla Agrícola Oriental', 'Campamento 2 de Octubre', 'INFONAVIT Iztacalco', 'Jardines Tecma', 'Juventino Rosas', 'La Cruz', 'Militar Marte', 'Quintana Roo'],
+        'Magdalena Contreras': ['Toda la delegación', 'San Jerónimo Lídice', 'San Jerónimo Aculco', 'Héroes de Padierna', 'La Malinche', 'Barranca Seca', 'San Nicolás Totolapan', 'Lomas de Padierna', 'Pueblo Nuevo Alto', 'Pueblo Nuevo Bajo', 'Santa Teresa', 'San Bernabé Ocotepec', 'Tierra Colorada', '2a Ampliación San Marcos Norte', 'Atacaxco', 'Las Cruces', 'Lomas de San Bernabé', 'El Rosal', 'Huayatla', 'Zentlapatl'],
+        'Cuajimalpa': ['Toda la delegación', 'Contadero', 'Cruz Manca', 'El Molinito', 'Jesús del Monte', 'Loma del Padre', 'San Lorenzo Acopilco', 'San Mateo Tlaltenango', 'San Pablo Chimalpa', 'Santa Fe Cuajimalpa', 'Santa Fe Peña Blanca', 'Santa Rosa Xochiac', 'Vista Hermosa', 'Zentlapatl', 'Abdías García Soto', 'Campestre Palo Alto', 'Las Maromas', 'Lomas de Vista Hermosa', 'Manzanastitla', 'Tlayacampa'],
+        'Xochimilco': ['Toda la delegación', 'Xochimilco Centro', 'San Gregorio Atlapulco', 'San Luis Tlaxialtemalco', 'Santa Cruz Acalpixca', 'Santa Cruz Xochitepec', 'Santa María Nativitas', 'Santa María Tepepan', 'Santiago Tepalcatlalpan', 'Santiago Tulyehualco', 'Ampliación Tepepan', 'Barrio 18', 'La Asunción', 'La Noria', 'Pueblo San Bartolo El Chico', 'San Lorenzo Atemoaya', 'Santa Cecilia Tepetlapa', 'Tierra Nueva', 'San Francisco Tlalnepantla', 'Huichapan'],
+        'Tláhuac': ['Toda la delegación', 'San Francisco Tlaltenco', 'San Andrés Mixquic', 'San Nicolás Tetelco', 'San Juan Ixtayopan', 'Santa Catarina Yecahuizotl', 'Miguel Hidalgo', 'La Nopalera', 'Ampliación Los Olivos', 'Del Mar', 'Granjas Cabrera', 'La Habana', 'La Turba', 'Los Olivos', 'Peñón Viejo', 'Quiahuatla', 'San José', 'Selene', 'Zapotitla', 'Zacatenco'],
+        'Milpa Alta': ['Toda la delegación', 'Villa Milpa Alta', 'San Antonio Tecómitl', 'San Bartolomé Xicomulco', 'San Francisco Tecoxpa', 'San Jerónimo Miacatlán', 'San Lorenzo Tlacoyucan', 'San Pablo Oztotepec', 'San Pedro Atocpan', 'San Salvador Cuauhtenco', 'Santa Ana Tlacotenco', 'Cruztitla', 'Emiliano Zapata', 'La Conchita', 'Nochtlixco', 'Ocotitla', 'Sehuaya', 'Tláhuac-Los Ángeles', 'Tulyehualco', 'Xaltipac']
+    },
+
+    // 15 Categorías Estratégicas
+    categories: [
+        { name: '☕ Cafeterías', query: 'coffee shop' },
+        { name: '🍽️ Restaurantes', query: 'restaurant' },
+        { name: '🏋️ Gimnasios', query: 'gym' },
+        { name: '💅 Salones & Spa', query: 'beauty salon spa' },
+        { name: '🏪 Boutiques', query: 'boutique clothing store' },
+        { name: '🎓 Escuelas/Cursos', query: 'school training center' },
+        { name: '🏥 Consultorios', query: 'medical clinic doctor office' },
+        { name: '🏨 Hoteles/Airbnb', query: 'hotel hostel' },
+        { name: '🚗 Talleres', query: 'auto repair car service' },
+        { name: '🎵 Bares/Antros', query: 'bar nightclub' },
+        { name: '🐾 Veterinarias', query: 'veterinary pet clinic' },
+        { name: '💆 Wellness Centers', query: 'wellness center massage' },
+        { name: '📸 Fotógrafos', query: 'photography studio' },
+        { name: '💼 Contadores', query: 'accounting office' },
+        { name: '🦷 Dentistas', query: 'dentist dental clinic' }
+    ],
+
+    cooldownInterval: null,
+
+    init() {
+        this.renderView();
+        this.checkSystemStatus();
+
+        // Cargar últimos resultados si existen
+        const saved = localStorage.getItem('nebula_results');
+        if (saved) {
+            try {
+                const leads = JSON.parse(saved);
+                if (Array.isArray(leads) && leads.length > 0) {
+                    this.renderResults(leads);
+                }
+            } catch (e) {
+                console.error('Error loading saved results', e);
+            }
+        }
+    },
+
+    async checkSystemStatus() {
+        try {
+            const res = await fetch('/api/nebula/status');
+            const status = await res.json();
+
+            if (!status.allowed) {
+                this.startCooldownUI(status.waitTime);
+            }
+        } catch (e) {
+            console.error('Error checking Nebula status', e);
+        }
+    },
+
+    startCooldownUI(waitTimeMs) {
+        const btn = document.getElementById('nebula-search-btn');
+        const btnText = document.getElementById('nebula-btn-text');
+
+        if (!btn || !btnText) return;
+
+        btn.disabled = true;
+        btn.classList.add('disabled');
+
+        if (this.cooldownInterval) clearInterval(this.cooldownInterval);
+
+        let remaining = waitTimeMs;
+
+        this.cooldownInterval = setInterval(() => {
+            remaining -= 1000;
+            if (remaining <= 0) {
+                clearInterval(this.cooldownInterval);
+                btn.disabled = false;
+                btn.classList.remove('disabled');
+                btnText.innerHTML = '<i class="fa-solid fa-satellite-dish" style="margin-right:10px;"></i> Escanear Mercado';
+                return;
+            }
+
+            const minutes = Math.floor(remaining / 60000);
+            const seconds = Math.floor((remaining % 60000) / 1000);
+
+            btnText.innerHTML = `<i class="fa-solid fa-clock" style="margin-right:5px;"></i> Recargando: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+        }, 1000);
+    },
+
+    renderView() {
+        const container = document.getElementById('module-content');
+
+        const delegacionOptions = this.delegaciones.map(d => `<option value="${d}">${d}</option>`).join('');
+        const categoryOptions = this.categories.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+        const coloniaOptions = this.coloniasPorDelegacion[this.delegaciones[0]].map(c => `<option value="${c}">${c}</option>`).join('');
+
+        container.innerHTML = `
+            ${UI.renderHeader('NEBULA', {
+            hideSearch: true,
+            moduleTitle: 'Radar de Leads',
+            description: 'Sistema anti-detección: 5 leads cada 7 minutos',
+            hideDateQuote: true,
+            actionButton: `
+                <button onclick="Nebula.showHistory()" class="btn btn-secondary" style="margin-right:10px;">
+                    <i class="fa-solid fa-database"></i> Leads Encontrados
+                </button>
+                <button onclick="Nebula.clearBoard()" class="btn btn-secondary">
+                    <i class="fa-solid fa-broom"></i> Limpiar Tablero
+                </button>
+            `
+        })}
+
+            <div class="row">
+                <div class="col-12">
+                    <div class="card glass" style="padding: 30px; border: 1px solid rgba(147, 51, 234, 0.1);">
+                        <div class="row align-items-end" style="gap:20px;">
+                            
+                            <div class="col" style="flex:1;">
+                                <label style="display:block; font-weight:600; margin-bottom:8px; color:var(--text-secondary);">
+                                    <i class="fa-solid fa-map-location-dot" style="color:#ef4444; margin-right:5px;"></i> Delegación CDMX
+                                </label>
+                                <select id="nebula-delegacion" class="form-select" style="height:50px; font-size:1rem; border-color:#e2e8f0;" onchange="Nebula.updateColonias()">
+                                    ${delegacionOptions}
+                                </select>
+                            </div>
+                            
+                            <div class="col" style="flex:1;">
+                                <label style="display:block; font-weight:600; margin-bottom:8px; color:var(--text-secondary);">
+                                    <i class="fa-solid fa-map-pin" style="color:#10b981; margin-right:5px;"></i> Colonia (Opcional)
+                                </label>
+                                <select id="nebula-colonia" class="form-select" style="height:50px; font-size:1rem; border-color:#e2e8f0;">
+                                    ${coloniaOptions}
+                                </select>
+                            </div>
+
+                            <div class="col" style="flex:1;">
+                                <label style="display:block; font-weight:600; margin-bottom:8px; color:var(--text-secondary);">
+                                    <i class="fa-solid fa-store" style="color:#f59e0b; margin-right:5px;"></i> Giro de Negocio
+                                </label>
+                                <select id="nebula-category" class="form-select" style="height:50px; font-size:1rem; border-color:#e2e8f0;">
+                                    ${categoryOptions}
+                                </select>
+                            </div>
+
+                            <div class="col-auto">
+                                <button id="nebula-search-btn" onclick="Nebula.startSearch()" class="btn btn-primary" style="height:50px; padding:0 30px; font-size:1.1rem; background:linear-gradient(135deg, #00b4d8, #3b82f6); border:none; box-shadow:0 4px 15px rgba(0,180,216, 0.4); min-width:200px;">
+                                    <span id="nebula-btn-text">
+                                        <i class="fa-solid fa-satellite-dish" style="margin-right:10px;"></i> Escanear Mercado
+                                    </span>
+                                </button>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="nebula-results" class="nebula-grid">
+                <div class="col-12" style="grid-column: 1 / -1; text-align:center; padding:60px 20px; color:#cbd5e1;">
+                    <i class="fa-solid fa-radar" style="font-size:5rem; margin-bottom:20px; opacity:0.3;"></i>
+                    <h3 style="color:#94a3b8; font-weight:400;">Radar en espera.</h3>
+                    <p>Selecciona tus parámetros para iniciar.</p>
+                </div>
+            </div>
+        `;
+
+        if (window.MotivationalQuotes) {
+            setTimeout(() => window.MotivationalQuotes.init(), 100);
+        }
+    },
+
+    updateColonias() {
+        const delegacion = document.getElementById('nebula-delegacion').value;
+        const coloniaSelect = document.getElementById('nebula-colonia');
+
+        const colonias = this.coloniasPorDelegacion[delegacion] || [];
+        coloniaSelect.innerHTML = colonias.map(c => `<option value="${c}">${c}</option>`).join('');
+    },
+
+    async startSearch() {
+        console.log('[NEBULA] Starting search...');
+
+        const delegacion = document.getElementById('nebula-delegacion').value;
+        const colonia = document.getElementById('nebula-colonia').value;
+        const categoryName = document.getElementById('nebula-category').value;
+
+        console.log('[NEBULA] Parameters:', { delegacion, colonia, categoryName });
+
+        if (!delegacion || !categoryName) {
+            UI.notify('Selecciona delegación y categoría', 'error');
+            return;
+        }
+
+        const categoryObj = this.categories.find(c => c.name === categoryName);
+        const categoryQuery = categoryObj ? categoryObj.query : categoryName;
+
+        let searchQuery;
+        if (colonia === 'Toda la delegación') {
+            searchQuery = `${categoryQuery} en ${delegacion}, Ciudad de México`;
+        } else {
+            searchQuery = `${categoryQuery} en ${colonia}, ${delegacion}, Ciudad de México`;
+        }
+
+        console.log('[NEBULA] Search query:', searchQuery);
+
+        this.showLoadingModal();
+
+        try {
+            const response = await fetch('/api/nebula/search', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    query: searchQuery,
+                    delegacion,
+                    categoria: categoryQuery
+                })
+            });
+
+            const data = await response.json();
+            console.log('[NEBULA] Response:', data);
+
+            if (data.success) {
+                localStorage.setItem('nebula_results', JSON.stringify(data.data));
+
+                this.renderResults(data.data);
+                UI.modal.hide();
+                UI.notify(`✅ Completado: ${data.count} prospectos encontrados`, 'success');
+
+                if (data.cooldown) {
+                    this.startCooldownUI(data.cooldown);
+                }
+            } else {
+                UI.modal.hide();
+                if (response.status === 429) {
+                    UI.notify(data.message || 'Límite de búsquedas alcanzado', 'warning');
+                    if (data.waitTime) {
+                        this.startCooldownUI(data.waitTime);
+                    }
+                } else {
+                    UI.notify(data.message || 'Error en la búsqueda', 'error');
+                }
+            }
+        } catch (error) {
+            console.error('[NEBULA] Error:', error);
+            UI.modal.hide();
+            UI.notify('Error de conexión', 'error');
+        }
+    },
+
+    showLoadingModal() {
+        UI.modal.show('Escaneando el Mercado...', `
+            <div style="text-align:center; padding:40px 20px;">
+                <div class="spinner-border text-primary" style="width:4rem; height:4rem; margin-bottom:20px;"></div>
+                <h4>Buscando prospectos...</h4>
+                <p style="color:var(--text-secondary); margin-top:10px;">Esto puede tomar hasta 2 minutos</p>
+            </div>
+        `, '', true);
+    },
+
+    renderResults(leads) {
+        console.log('[NEBULA] Rendering', leads ? leads.length : 0, 'results');
+
+        const container = document.getElementById('nebula-results');
+        if (!container) {
+            console.error('[NEBULA] Container not found');
+            return;
+        }
+
+        if (!leads || leads.length === 0) {
+            container.innerHTML = `
+                <div class="col-12" style="grid-column: 1 / -1; text-align:center; padding:60px 20px; color:#cbd5e1;">
+                    <i class="fa-solid fa-circle-exclamation" style="font-size:5rem; margin-bottom:20px; opacity:0.3; color:#f59e0b;"></i>
+                    <h3 style="color:#f59e0b; font-weight:600;">No se encontraron resultados</h3>
+                    <p>Intenta con otra delegación o categoría.</p>
+                </div>`;
+            return;
+        }
+
+        const cardsHTML = leads.map(lead => {
+            const isSaved = lead.guardado_crm === 1;
+            const scoreColor = lead.score_oportunidad > 70 ? '#ef4444' : lead.score_oportunidad > 40 ? '#f59e0b' : '#3b82f6';
+
+            let servicios = [];
+            try {
+                servicios = typeof lead.servicios_recomendados === 'string'
+                    ? JSON.parse(lead.servicios_recomendados)
+                    : (Array.isArray(lead.servicios_recomendados) ? lead.servicios_recomendados : []);
+            } catch (e) {
+                servicios = [];
+            }
+
+            return `
+                <div class="col-md-6">
+                    <div class="card glass" style="padding:25px; border-left:4px solid ${scoreColor};">
+                        <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
+                            <div style="flex:1;">
+                                <h4 style="margin:0 0 5px 0;">${lead.nombre}</h4>
+                                <p style="margin:0; color:var(--text-secondary); font-size:0.85rem;">
+                                    ${lead.categoria || 'General'}
+                                </p>
+                            </div>
+                            <div style="text-align:center; background:${scoreColor}; color:white; padding:10px 15px; border-radius:10px;">
+                                <div style="font-size:1.5rem; font-weight:700;">${lead.score_oportunidad}</div>
+                                <div style="font-size:0.65rem;">SCORE</div>
+                            </div>
+                        </div>
+
+                        ${lead.rating_google ? `
+                            <div style="margin-bottom:12px;">
+                                <span style="background:#f59e0b; color:white; padding:5px 12px; border-radius:20px; font-size:0.85rem;">
+                                    ⭐ ${lead.rating_google} / 5.0
+                                </span>
+                            </div>
+                        ` : ''}
+
+                        <div style="background:rgba(147,51,234,0.05); padding:12px; border-radius:8px; margin-bottom:12px;">
+                            ${lead.telefono ? `
+                                <div style="margin-bottom:8px;">
+                                    📞 <a href="tel:${lead.telefono}">${lead.telefono}</a>
+                                </div>
+                            ` : ''}
+                            ${lead.direccion ? `
+                                <div style="font-size:0.85rem; color:var(--text-secondary);">
+                                    📍 ${lead.direccion}
+                                </div>
+                            ` : ''}
+                        </div>
+
+                        ${(lead.facebook_url || lead.instagram_url || lead.tiktok_url) ? `
+                            <div style="margin-bottom:12px; display:flex; gap:8px;">
+                                ${lead.facebook_url ? `<a href="${lead.facebook_url}" target="_blank" style="background:#1877f2; color:white; padding:6px 12px; border-radius:8px; text-decoration:none;">FB</a>` : ''}
+                                ${lead.instagram_url ? `<a href="${lead.instagram_url}" target="_blank" style="background:#e1306c; color:white; padding:6px 12px; border-radius:8px; text-decoration:none;">IG</a>` : ''}
+                                ${lead.tiktok_url ? `<a href="${lead.tiktok_url}" target="_blank" style="background:#000; color:white; padding:6px 12px; border-radius:8px; text-decoration:none;">TT</a>` : ''}
+                            </div>
+                        ` : ''}
+
+                        <div style="background:#e0f2fe; padding:12px; border-radius:8px; margin-bottom:12px;">
+                            <div style="font-weight:600; font-size:0.85rem; color:#075985; margin-bottom:6px;">
+                                🧠 ANÁLISIS NOVA
+                            </div>
+                            <p style="margin:0; font-size:0.8rem; color:#075985;">
+                                ${lead.analisis_ia || 'Análisis en proceso...'}
+                            </p>
+                        </div>
+
+                        <div style="display:flex; gap:10px;">
+                            <a href="${lead.maps_url || '#'}" target="_blank" class="btn btn-sm btn-outline-primary" style="flex:1;">
+                                Ver en Maps
+                            </a>
+                            ${isSaved
+                    ? `<button class="btn btn-sm btn-success" disabled style="flex:2;">Guardado</button>`
+                    : `<button class="btn btn-sm btn-primary" onclick="Nebula.saveLead('${lead.id}', this)" style="flex:2;">Guardar Lead</button>`
+                }
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        container.innerHTML = cardsHTML;
+        console.log('[NEBULA] Results rendered');
+    },
+
+    async saveLead(leadId, btnElement) {
+        if (btnElement) {
+            btnElement.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+            btnElement.disabled = true;
+        }
+
+        try {
+            const res = await fetch(`/api/nebula/save/${encodeURIComponent(leadId)}`, { method: 'POST' });
+            const data = await res.json();
+
+            if (data.success) {
+                UI.notify('Lead guardado en CRM exitosamente', 'success');
+                if (btnElement) {
+                    btnElement.innerHTML = '<i class="fa-solid fa-check"></i> Guardado';
+                    btnElement.classList.remove('btn-primary');
+                    btnElement.classList.add('btn-success');
+                }
+
+                const saved = localStorage.getItem('nebula_results');
+                if (saved) {
+                    const leads = JSON.parse(saved);
+                    const leadIndex = leads.findIndex(l => l.id === leadId);
+                    if (leadIndex !== -1) {
+                        leads[leadIndex].guardado_crm = 1;
+                        localStorage.setItem('nebula_results', JSON.stringify(leads));
+                    }
+                }
+
+            } else {
+                UI.notify(data.message || 'Error al guardar', 'error');
+                if (btnElement) {
+                    btnElement.innerHTML = '<i class="fa-solid fa-plus"></i> Guardar Lead';
+                    btnElement.disabled = false;
+                }
+            }
+        } catch (error) {
+            console.error(error);
+            UI.notify('Error de conexión', 'error');
+            if (btnElement) {
+                btnElement.innerHTML = '<i class="fa-solid fa-plus"></i> Guardar Lead';
+                btnElement.disabled = false;
+            }
+        }
+    },
+
+    clearBoard() {
+        if (confirm('¿Estás seguro de limpiar el tablero? Esto solo borrará los resultados actuales.')) {
+            localStorage.removeItem('nebula_results');
+            const container = document.getElementById('nebula-results');
+            if (container) {
+                container.innerHTML = `
+                    <div class="col-12" style="grid-column: 1 / -1; text-align:center; padding:60px 20px; color:#cbd5e1;">
+                        <i class="fa-solid fa-broom" style="font-size:5rem; margin-bottom:20px; opacity:0.3; color:#10b981;"></i>
+                        <h3 style="color:#10b981; font-weight:600;">¡Tablero Limpiado!</h3>
+                        <p>Los resultados han sido eliminados. Realiza una nueva búsqueda.</p>
+                    </div>`;
+                UI.notify('✨ Tablero limpiado correctamente', 'success');
+            }
+        }
+    },
+
+    async showHistory() {
+        try {
+            const response = await fetch('/api/nebula/history');
+            const data = await response.json();
+
+            console.log('[NEBULA] History response:', data);
+
+            if (!data.success || !data.leads || data.leads.length === 0) {
+                UI.modal.show('Historial Vacío', '<p style="text-align:center; padding:60px;">No hay leads guardados aún.</p>');
+                return;
+            }
+
+            const leads = data.leads;
+
+            const html = `
+                <div style="margin-bottom:20px; display:flex; justify-content:space-between;">
+                    <h3>Total: ${leads.length} leads</h3>
+                    <button class="btn btn-success" onclick="Nebula.exportToCSV()">
+                        Exportar CSV
+                    </button>
+                </div>
+                <div style="max-height:500px; overflow-y:auto;">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Categoría</th>
+                                <th>Score</th>
+                                <th>Teléfono</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${leads.map(lead => `
+                                <tr>
+                                    <td><strong>${lead.nombre}</strong></td>
+                                    <td>${lead.categoria || 'N/D'}</td>
+                                    <td><span style="background:${lead.score_oportunidad > 70 ? '#ef4444' : '#3b82f6'}; color:white; padding:4px 8px; border-radius:6px;">${lead.score_oportunidad}</span></td>
+                                    <td>${lead.telefono || 'N/D'}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            UI.modal.show('Historial de Leads', html);
+        } catch (error) {
+            console.error('[NEBULA] Error:', error);
+            UI.notify('Error al cargar historial', 'error');
+        }
+    },
+
+    async exportToCSV() {
+        window.open('/api/nebula/export-csv', '_blank');
+    }
+};
+
+// IMPORTANTE: Exponer como ambos para compatibilidad
+window.Nebula = Nebula;
+window.nebula = Nebula;

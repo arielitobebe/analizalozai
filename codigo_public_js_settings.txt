@@ -1,0 +1,337 @@
+ARCHIVO: public\js\settings.js
+================================================================================
+
+const Settings = {
+    config: {},
+
+    async init() {
+        await this.fetchConfig();
+        this.renderView();
+    },
+
+    async fetchConfig() {
+        try {
+            const res = await fetch('/api/config');
+            this.config = await res.json();
+        } catch (e) {
+            console.error('Error loading config:', e);
+        }
+    },
+
+    renderView() {
+        const container = document.getElementById('module-content');
+        container.innerHTML = `
+            ${UI.renderHeader('CONFIGURACIÓN', {
+            hideSearch: true,
+            moduleTitle: 'Configuración del Sistema',
+            description: 'Personaliza tu CRM y gestiona la identidad de tu empresa.',
+            actionButton: `<button class="btn btn-primary" onclick="Settings.save()">
+                    <i class="fa-solid fa-floppy-disk"></i> Guardar Cambios
+                </button>`
+        })}
+            
+            <div class="settings-grid" style="display:grid; grid-template-columns: 280px 1fr; gap:30px; margin-top:25px;">
+                <div class="settings-nav card glass" style="padding:15px; height:fit-content; display:flex; flex-direction:column; gap:5px;">
+                    <div class="s-nav-item active" data-tab="empresa" onclick="Settings.switchTab(this, 'empresa')" style="padding:12px 15px; border-radius:10px; cursor:pointer; transition:0.3s; display:flex; align-items:center; gap:12px; font-weight:600; color:var(--primary-medium); background:rgba(147,51,234,0.1);">
+                        <i class="fa-solid fa-building"></i> <span>Perfil de Empresa</span>
+                    </div>
+                    <div class="s-nav-item" data-tab="sistema" onclick="Settings.switchTab(this, 'sistema')" style="padding:12px 15px; border-radius:10px; cursor:pointer; transition:0.3s; display:flex; align-items:center; gap:12px; color:#64748b;">
+                        <i class="fa-solid fa-gears"></i> <span>Preferencias</span>
+                    </div>
+                    <div class="s-nav-item" data-tab="notificaciones" onclick="Settings.switchTab(this, 'notificaciones')" style="padding:12px 15px; border-radius:10px; cursor:pointer; transition:0.3s; display:flex; align-items:center; gap:12px; color:#64748b;">
+                        <i class="fa-solid fa-bell"></i> <span>Notificaciones</span>
+                    </div>
+                    <div class="s-nav-item" data-tab="seguridad" onclick="Settings.switchTab(this, 'seguridad')" style="padding:12px 15px; border-radius:10px; cursor:pointer; transition:0.3s; display:flex; align-items:center; gap:12px; color:#64748b;">
+                        <i class="fa-solid fa-shield-halved"></i> <span>Seguridad</span>
+                    </div>
+                    <div class="s-nav-item" data-tab="roles" onclick="Settings.switchTab(this, 'roles')" style="padding:12px 15px; border-radius:10px; cursor:pointer; transition:0.3s; display:flex; align-items:center; gap:12px; color:#64748b;">
+                        <i class="fa-solid fa-users-gear"></i> <span>Equipo y Roles</span>
+                    </div>
+                </div>
+
+                <div class="settings-content card glass" id="settings-panes" style="padding:30px;">
+                    ${this.renderEmpresaPane()}
+                </div>
+            </div>
+        `;
+        // Initialize quotes
+        if (window.MotivationalQuotes) {
+            setTimeout(() => window.MotivationalQuotes.init(), 100);
+        }
+    },
+
+    renderEmpresaPane() {
+        return `
+            <div class="settings-pane active">
+                <h3 style="margin:0 0 10px 0;">Perfil de Empresa</h3>
+                <p style="color:var(--text-secondary); margin-bottom:25px;">Información legal y comercial para documentos y cotizaciones.</p>
+                <form id="settings-form-empresa">
+                    <div class="form-row" style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+                        <div class="form-group">
+                            <label>Nombre Legal</label>
+                            <input type="text" name="empresa_nombre_legal" class="form-control" value="${this.config.empresa_nombre_legal || 'NOVADEX SOLUTIONS S.A.'}">
+                        </div>
+                        <div class="form-group">
+                            <label>Nombre Comercial</label>
+                            <input type="text" name="empresa_nombre_comercial" class="form-control" value="${this.config.empresa_nombre_comercial || 'NOVADEX'}">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Dirección Fiscal</label>
+                        <input type="text" name="empresa_direccion" class="form-control" value="${this.config.empresa_direccion || 'Av. Reforma 123, CDMX, México'}">
+                    </div>
+                    <div class="form-row" style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+                        <div class="form-group">
+                            <label>Teléfono de Contacto</label>
+                            <input type="text" name="empresa_telefono" class="form-control" value="${this.config.empresa_telefono || '+52 55 1234 5678'}">
+                        </div>
+                        <div class="form-group">
+                            <label>Correo de Soporte</label>
+                            <input type="email" name="empresa_email" class="form-control" value="${this.config.empresa_email || 'soporte@novadex.com'}">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Logo de Empresa</label>
+                        <div style="display:flex; align-items:center; gap:20px; border:2px dashed #e2e8f0; padding:20px; border-radius:12px; background:#f8fafc;">
+                            <div style="width:70px; height:70px; background:var(--gradient-primary); border-radius:14px; display:flex; align-items:center; justify-content:center; color:white; font-size:1.5rem; font-weight:800; box-shadow:0 4px 12px rgba(147,51,234,0.2);">
+                                ${this.config.empresa_nombre_comercial ? this.config.empresa_nombre_comercial.substring(0, 2).toUpperCase() : 'NV'}
+                            </div>
+                            <div>
+                                <h4 style="margin:0 0 5px 0; font-size:0.95rem;">Subir nuevo logo</h4>
+                                <p style="margin:0; font-size:0.8rem; color:var(--text-secondary);">PNG o JPG. Max 2MB.</p>
+                                <button type="button" class="btn btn-secondary btn-sm mt-2" onclick="UI.notify('Subida de logo próximamente', 'info')">Seleccionar Archivo</button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        `;
+    },
+
+    renderSistemaPane() {
+        return `
+            <div class="settings-pane active">
+                <h3 style="margin:0 0 10px 0;">Preferencias del Sistema</h3>
+                <p style="color:var(--text-secondary); margin-bottom:25px;">Configura el comportamiento global de tu plataforma.</p>
+                <form id="settings-form-sistema">
+                    <div class="form-row" style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+                        <div class="form-group">
+                            <label>Moneda Base</label>
+                            <select name="sistema_moneda" class="form-select">
+                                <option value="MXN" ${this.config.sistema_moneda === 'MXN' ? 'selected' : ''}>Peso Mexicano (MXN)</option>
+                                <option value="USD" ${this.config.sistema_moneda === 'USD' ? 'selected' : ''}>Dólar Americano (USD)</option>
+                                <option value="EUR" ${this.config.sistema_moneda === 'EUR' ? 'selected' : ''}>Euro (EUR)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Zona Horaria</label>
+                            <select name="sistema_timezone" class="form-select">
+                                <option value="GMT-6" ${this.config.sistema_timezone === 'GMT-6' ? 'selected' : ''}>(GMT-06:00) Ciudad de México</option>
+                                <option value="GMT-5" ${this.config.sistema_timezone === 'GMT-5' ? 'selected' : ''}>(GMT-05:00) Bogota, Lima, Quito</option>
+                                <option value="GMT-8" ${this.config.sistema_timezone === 'GMT-8' ? 'selected' : ''}>(GMT-08:00) Pacific Time</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Idioma Predeterminado</label>
+                        <select name="sistema_idioma" class="form-select">
+                            <option value="es" ${this.config.sistema_idioma === 'es' ? 'selected' : ''}>Español</option>
+                            <option value="en" ${this.config.sistema_idioma === 'en' ? 'selected' : ''}>English</option>
+                        </select>
+                    </div>
+                    <hr style="border:0; border-top:1px solid #f1f5f9; margin:25px 0;">
+                    <div class="form-group">
+                        <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+                            <input type="checkbox" name="sistema_dark_mode" ${this.config.sistema_dark_mode === 'true' ? 'checked' : ''} style="width:18px; height:18px;">
+                            <span>Habilitar Modo Oscuro Automático</span>
+                        </label>
+                    </div>
+                </form>
+            </div>
+        `;
+    },
+
+    renderNotificacionesPane() {
+        return `
+            <div class="settings-pane active">
+                <h3 style="margin:0 0 10px 0;">Notificaciones</h3>
+                <p style="color:var(--text-secondary); margin-bottom:25px;">Gestiona cómo y cuándo quieres recibir avisos.</p>
+                <div style="display:flex; flex-direction:column; gap:20px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding:15px; background:#f8fafc; border-radius:12px;">
+                        <div>
+                            <strong style="display:block;">Alertas de Ventas</strong>
+                            <span style="font-size:0.85rem; color:var(--text-secondary);">Notificar cuando una venta se cierre con éxito.</span>
+                        </div>
+                        <input type="checkbox" checked style="width:20px; height:20px;">
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding:15px; background:#f8fafc; border-radius:12px;">
+                        <div>
+                            <strong style="display:block;">Recordatorios de Tareas</strong>
+                            <span style="font-size:0.85rem; color:var(--text-secondary);">Avisar 24h antes del vencimiento de una tarea.</span>
+                        </div>
+                        <input type="checkbox" checked style="width:20px; height:20px;">
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding:15px; background:#f8fafc; border-radius:12px;">
+                        <div>
+                            <strong style="display:block;">Emails de Resumen Semanal</strong>
+                            <span style="font-size:0.85rem; color:var(--text-secondary);">Enviar reporte de rendimiento cada lunes.</span>
+                        </div>
+                        <input type="checkbox" style="width:20px; height:20px;">
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    renderSeguridadPane() {
+        return `
+            <div class="settings-pane active">
+                <h3 style="margin:0 0 10px 0;">Seguridad y Acceso</h3>
+                <p style="color:var(--text-secondary); margin-bottom:25px;">Protege tu cuenta y gestiona los permisos del equipo.</p>
+                <div style="display:flex; flex-direction:column; gap:15px;">
+                    <button class="btn btn-secondary" onclick="UI.notify('Cambio de contraseña próximamente', 'info')" style="text-align:left; justify-content:flex-start; padding:15px;">
+                        <i class="fa-solid fa-key" style="margin-right:10px;"></i> Cambiar Contraseña de Administrador
+                    </button>
+                    <button class="btn btn-secondary" onclick="UI.notify('Sesiones activas próximamente', 'info')" style="text-align:left; justify-content:flex-start; padding:15px;">
+                        <i class="fa-solid fa-laptop-code" style="margin-right:10px;"></i> Ver Sesiones Activas
+                    </button>
+                    <div style="margin-top:10px; padding:15px; border:1px solid #fee2e2; background:#fef2f2; border-radius:12px;">
+                        <h4 style="margin:0 0 5px 0; color:#dc2626; font-size:0.95rem;">Zona Crítica</h4>
+                        <p style="margin:0 0 10px 0; font-size:0.85rem; color:#991b1b;">Eliminar todos los datos del sistema. Esta acción es irreversible.</p>
+                        <button class="btn btn-danger btn-sm" onclick="confirm('¿Estás SEGURO? Esta acción borrará TODO.')">Borrar Base de Datos</button>
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    switchTab(element, tab) {
+        document.querySelectorAll('.s-nav-item').forEach(el => {
+            el.classList.remove('active');
+            el.style.background = 'transparent';
+            el.style.color = '#64748b';
+            el.style.fontWeight = '400';
+        });
+        element.classList.add('active');
+        element.style.background = 'rgba(147,51,234,0.1)';
+        element.style.color = 'var(--primary-medium)';
+        element.style.fontWeight = '700';
+
+        const content = document.getElementById('settings-panes');
+        switch (tab) {
+            case 'empresa': content.innerHTML = this.renderEmpresaPane(); break;
+            case 'sistema': content.innerHTML = this.renderSistemaPane(); break;
+            case 'notificaciones': content.innerHTML = this.renderNotificacionesPane(); break;
+            case 'seguridad': content.innerHTML = this.renderSeguridadPane(); break;
+            case 'roles':
+                this.renderRolesPane().then(html => content.innerHTML = html);
+                break;
+        }
+    },
+
+    async renderRolesPane() {
+        try {
+            const res = await fetch('/api/equipo'); // Corrected route to match server
+            const users = await res.json();
+
+            return `
+                <div class="settings-pane active">
+                    <h3 style="margin:0 0 10px 0;">Gestión de Equipo y Roles</h3>
+                    <p style="color:var(--text-secondary); margin-bottom:25px;">Administra los miembros del equipo y sus niveles de acceso.</p>
+                    
+                    <div style="background:#f8fafc; border-radius:12px; padding:20px; border:1px solid #e2e8f0; margin-bottom:25px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <div>
+                                <h4 style="margin:0 0 5px 0;">Roles Definidos</h4>
+                                <p style="margin:0; font-size:0.85rem; color:var(--text-secondary);">Niveles de permiso disponibles en el sistema.</p>
+                            </div>
+                            <button class="btn btn-secondary btn-sm" onclick="UI.notify('Gestión de roles personalizados próximamente', 'info')">Gestionar Roles</button>
+                        </div>
+                        <div style="display:flex; gap:10px; margin-top:15px;">
+                            <span class="badge" style="background:var(--primary-dark); color:white;">Administrador (Acceso Total)</span>
+                            <span class="badge" style="background:var(--info); color:white;">Gerente (Edición)</span>
+                            <span class="badge" style="background:var(--secondary); color:white;">Usuario (Lectura/Escritura básica)</span>
+                        </div>
+                    </div>
+
+                    <h4 style="margin-bottom:15px;">Miembros del Equipo</h4>
+                    <div style="display:flex; flex-direction:column; gap:10px;">
+                        ${users.map(u => `
+                            <div style="display:flex; justify-content:space-between; align-items:center; padding:15px; background:white; border:1px solid #e2e8f0; border-radius:10px;">
+                                <div style="display:flex; align-items:center; gap:15px;">
+                                    <div style="width:40px; height:40px; background:var(--primary-light); border-radius:50%; display:flex; align-items:center; justify-content:center; color:var(--primary-dark); font-weight:700;">
+                                        ${u.nombre.substring(0, 1)}${u.apellido.substring(0, 1)}
+                                    </div>
+                                    <div>
+                                        <strong style="display:block;">${u.nombre} ${u.apellido}</strong>
+                                        <small style="color:var(--text-secondary);">${u.rol || 'Usuario'} · ${u.puesto || 'Sin puesto'}</small>
+                                    </div>
+                                </div>
+                                <select class="form-select" style="width:150px;" onchange="Settings.updateRole('${u.id}', this.value)">
+                                    <option value="admin" ${u.rol === 'admin' ? 'selected' : ''}>Administrador</option>
+                                    <option value="gerente" ${u.rol === 'gerente' ? 'selected' : ''}>Gerente</option>
+                                    <option value="usuario" ${u.rol === 'usuario' || !u.rol ? 'selected' : ''}>Usuario</option>
+                                </select>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        } catch (e) {
+            return '<p class="text-error">Error al cargar usuarios</p>';
+        }
+    },
+
+    async updateRole(userId, newRole) {
+        try {
+            await fetch(`/api/equipo/${userId}/role`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ rol: newRole })
+            });
+            UI.notify('Rol actualizado correctamente', 'success');
+        } catch (e) {
+            UI.notify('Error al actualizar rol', 'error');
+        }
+    },
+
+    async save() {
+        const formEmpresa = document.getElementById('settings-form-empresa');
+        const formSistema = document.getElementById('settings-form-sistema');
+
+        const data = {};
+        if (formEmpresa) {
+            const fd = new FormData(formEmpresa);
+            fd.forEach((value, key) => data[key] = value);
+        }
+        if (formSistema) {
+            const fd = new FormData(formSistema);
+            fd.forEach((value, key) => {
+                if (key === 'sistema_dark_mode') data[key] = 'true';
+                else data[key] = value;
+            });
+            if (!formSistema.querySelector('[name="sistema_dark_mode"]').checked) {
+                data['sistema_dark_mode'] = 'false';
+            }
+        }
+
+        try {
+            const res = await fetch('/api/config/bulk', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            if (res.ok) {
+                UI.notify('✅ Configuración guardada correctamente', 'success');
+                await this.fetchConfig();
+            } else {
+                UI.notify('Error al guardar configuración', 'error');
+            }
+        } catch (e) {
+            UI.notify('Error de conexión', 'error');
+        }
+    }
+};
+
+window.Settings = Settings;

@@ -1,0 +1,415 @@
+ARCHIVO: server\db.js
+================================================================================
+
+const sqlite3 = require('sqlite3').verbose();
+const path = require('path');
+
+const dbPath = path.resolve(__dirname, 'novadex.db');
+const db = new sqlite3.Database(dbPath, (err) => {
+    if (err) {
+        console.error('Error opening database', err.message);
+    } else {
+        console.log('Connected to the SQLite database.');
+        createTables();
+    }
+});
+
+function createTables() {
+    db.serialize(() => {
+        // Miembros del Equipo
+        db.run(`CREATE TABLE IF NOT EXISTS usuarios_equipo (
+            id TEXT PRIMARY KEY,
+            nombre TEXT NOT NULL,
+            apellido TEXT NOT NULL,
+            avatar_url TEXT,
+            correo_personal TEXT,
+            correo_corporativo TEXT UNIQUE,
+            telefono TEXT,
+            celular TEXT,
+            direccion TEXT,
+            ciudad TEXT,
+            estado TEXT,
+            departamento TEXT,
+            puesto TEXT,
+            sueldo_base REAL,
+            activo INTEGER DEFAULT 1,
+            fecha_registro DATETIME DEFAULT CURRENT_TIMESTAMP
+        )`);
+
+        // Clientes
+        db.run(`CREATE TABLE IF NOT EXISTS clientes (
+            id TEXT PRIMARY KEY,
+            nombre_negocio TEXT NOT NULL,
+            persona_encargada TEXT NOT NULL,
+            correo_electronico TEXT NOT NULL,
+            telefono TEXT,
+            celular TEXT,
+            direccion TEXT,
+            estado_pago TEXT DEFAULT 'pendiente',
+            estado TEXT DEFAULT 'activo',
+            monto_total REAL DEFAULT 0,
+            monto_pagado REAL DEFAULT 0,
+            monto_pendiente REAL DEFAULT 0,
+            vendedor_id TEXT,
+            logo_url TEXT,
+            notas TEXT,
+            servicio_interes TEXT,
+            fecha_registro DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (vendedor_id) REFERENCES usuarios_equipo (id)
+        )`);
+
+        // Leads
+        db.run(`CREATE TABLE IF NOT EXISTS leads (
+            id TEXT PRIMARY KEY,
+            nombre TEXT NOT NULL,
+            empresa TEXT,
+            persona_encargada TEXT,
+            correo_electronico TEXT,
+            telefono TEXT,
+            fuente TEXT,
+            estatus TEXT DEFAULT 'nuevo',
+            temperatura TEXT DEFAULT 'tibio',
+            asignado_id TEXT,
+            notas TEXT,
+            fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (asignado_id) REFERENCES usuarios_equipo (id)
+        )`);
+
+        // Servicios
+        db.run(`CREATE TABLE IF NOT EXISTS servicios (
+            id TEXT PRIMARY KEY,
+            nombre TEXT NOT NULL,
+            categoria TEXT,
+            descripcion TEXT,
+            costo REAL,
+            activo INTEGER DEFAULT 1,
+            notas TEXT
+        )`);
+
+        // Proyectos
+        db.run(`CREATE TABLE IF NOT EXISTS proyectos (
+            id TEXT PRIMARY KEY,
+            nombre TEXT NOT NULL,
+            cliente_id TEXT,
+            servicio_id TEXT,
+            estado TEXT DEFAULT 'activo',
+            descripcion TEXT,
+            fecha_inicio DATETIME,
+            fecha_entrega_estimada DATETIME,
+            progreso_general INTEGER DEFAULT 0,
+            fase_actual INTEGER DEFAULT 0,
+            FOREIGN KEY (cliente_id) REFERENCES clientes (id),
+            FOREIGN KEY (servicio_id) REFERENCES servicios (id)
+        )`);
+
+        // Tareas
+        db.run(`CREATE TABLE IF NOT EXISTS tareas (
+            id TEXT PRIMARY KEY,
+            titulo TEXT NOT NULL,
+            descripcion TEXT,
+            prioridad TEXT DEFAULT 'media',
+            estatus TEXT DEFAULT 'pendiente',
+            proyecto_id TEXT,
+            asignado_id TEXT,
+            fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (proyecto_id) REFERENCES proyectos (id),
+            FOREIGN KEY (asignado_id) REFERENCES usuarios_equipo (id)
+        )`);
+
+        // Ventas
+        db.run(`CREATE TABLE IF NOT EXISTS ventas (
+            id TEXT PRIMARY KEY,
+            numero_venta TEXT,
+            cliente_id TEXT,
+            monto_total REAL,
+            estatus TEXT,
+            fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (cliente_id) REFERENCES clientes (id)
+        )`);
+
+        // Registros Financieros
+        db.run(`CREATE TABLE IF NOT EXISTS registros_financieros (
+            id TEXT PRIMARY KEY,
+            tipo TEXT,
+            categoria TEXT,
+            monto REAL,
+            concepto TEXT,
+            descripcion TEXT,
+            fecha DATETIME DEFAULT CURRENT_TIMESTAMP
+        )`);
+
+        // Configuración del Sistema
+        db.run(`CREATE TABLE IF NOT EXISTS configuracion_sistema (
+            clave TEXT PRIMARY KEY,
+            valor TEXT
+        )`);
+
+        // Interacciones de Leads (Timeline)
+        db.run(`CREATE TABLE IF NOT EXISTS leads_interacciones (
+            id TEXT PRIMARY KEY,
+            lead_id TEXT,
+            tipo TEXT, -- 'llamada', 'email', 'reunion', 'nota'
+            descripcion TEXT,
+            fecha DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (lead_id) REFERENCES leads (id)
+        )`);
+
+        // Equipo del Proyecto (Many-to-Many)
+        db.run(`CREATE TABLE IF NOT EXISTS proyectos_equipo (
+            proyecto_id TEXT,
+            usuario_id TEXT,
+            rol_proyecto TEXT, -- 'Líder', 'Desarrollador', 'Diseñador', etc.
+            PRIMARY KEY (proyecto_id, usuario_id),
+            FOREIGN KEY (proyecto_id) REFERENCES proyectos (id),
+            FOREIGN KEY (usuario_id) REFERENCES usuarios_equipo (id)
+        )`);
+
+        // Archivos del Proyecto
+        db.run(`CREATE TABLE IF NOT EXISTS proyectos_archivos (
+            id TEXT PRIMARY KEY,
+            proyecto_id TEXT,
+            nombre TEXT,
+            url TEXT,
+            tipo TEXT,
+            tamano INTEGER,
+            fecha_subida DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (proyecto_id) REFERENCES proyectos (id)
+        )`);
+        // Cotizaciones
+        db.run(`CREATE TABLE IF NOT EXISTS cotizaciones (
+            id TEXT PRIMARY KEY,
+            folio TEXT,
+            cliente_id TEXT,
+            fecha DATE,
+            vencimiento DATE,
+            subtotal REAL,
+            iva REAL,
+            total REAL,
+            estado TEXT DEFAULT 'borrador', -- 'borrador', 'enviada', 'aceptada', 'rechazada'
+            notas TEXT,
+            FOREIGN KEY (cliente_id) REFERENCES clientes (id)
+        )`);
+
+        // Partidas de Cotización
+        db.run(`CREATE TABLE IF NOT EXISTS cotizacion_items (
+            id TEXT PRIMARY KEY,
+            cotizacion_id TEXT,
+            descripcion TEXT,
+            cantidad INTEGER,
+            precio_unitario REAL,
+            importe REAL,
+            FOREIGN KEY (cotizacion_id) REFERENCES cotizaciones (id)
+        )`);
+        // Avisos de Comunidad (Tablón)
+        db.run(`CREATE TABLE IF NOT EXISTS avisos_comunidad (
+            id TEXT PRIMARY KEY,
+            titulo TEXT,
+            contenido TEXT,
+            autor_id TEXT,
+            fecha DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (autor_id) REFERENCES usuarios_equipo (id)
+        )`);
+
+        // Pagos de Clientes (Historial)
+        db.run(`CREATE TABLE IF NOT EXISTS pagos_clientes (
+            id TEXT PRIMARY KEY,
+            cliente_id TEXT,
+            monto REAL,
+            metodo TEXT, -- 'efectivo', 'transferencia', 'tarjeta', 'cheque'
+            concepto TEXT,
+            fecha DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (cliente_id) REFERENCES clientes (id)
+        )`);
+
+        // Gastos Recurrentes (Finanzas)
+        db.run(`CREATE TABLE IF NOT EXISTS gastos_recurrentes (
+            id TEXT PRIMARY KEY,
+            concepto TEXT,
+            monto REAL,
+            frecuencia TEXT, -- 'mensual', 'quincenal', 'semanal'
+            dia_vencimiento INTEGER,
+            activo BOOLEAN DEFAULT 1,
+            categoria TEXT
+        )`);
+
+        // Ventas Items (Líneas de venta)
+        db.run(`CREATE TABLE IF NOT EXISTS ventas_items (
+            id TEXT PRIMARY KEY,
+            venta_id TEXT,
+            descripcion TEXT,
+            cantidad REAL,
+            precio_unitario REAL,
+            importe REAL,
+            FOREIGN KEY (venta_id) REFERENCES ventas (id)
+        )`);
+
+        // Añadir columnas faltantes a ventas (migration safe)
+        db.run(`ALTER TABLE ventas ADD COLUMN etapa TEXT DEFAULT 'prospeccion'`, () => { });
+        db.run(`ALTER TABLE ventas ADD COLUMN probabilidad_cierre INTEGER DEFAULT 25`, () => { });
+        db.run(`ALTER TABLE ventas ADD COLUMN notas TEXT`, () => { });
+        db.run(`ALTER TABLE ventas ADD COLUMN fecha_cierre_estimada DATE`, () => { });
+        db.run(`ALTER TABLE ventas ADD COLUMN vendedor_id TEXT`, () => { });
+
+        // Archivos de Clientes
+        db.run(`CREATE TABLE IF NOT EXISTS clientes_archivos (
+            id TEXT PRIMARY KEY,
+            cliente_id TEXT,
+            nombre TEXT,
+            url TEXT,
+            tipo TEXT,
+            tamano INTEGER,
+            fecha_subida DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (cliente_id) REFERENCES clientes (id)
+        )`);
+
+        // Anotaciones/Notas de Clientes
+        db.run(`CREATE TABLE IF NOT EXISTS clientes_notas (
+            id TEXT PRIMARY KEY,
+            cliente_id TEXT,
+            tipo TEXT, -- 'llamada', 'email', 'reunion', 'nota', 'recordatorio'
+            titulo TEXT,
+            contenido TEXT,
+            autor_id TEXT,
+            fecha DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (cliente_id) REFERENCES clientes (id),
+            FOREIGN KEY (autor_id) REFERENCES usuarios_equipo (id)
+        )`);
+
+        // Gastos de Proyectos (Tracking de Presupuesto)
+        db.run(`CREATE TABLE IF NOT EXISTS proyectos_gastos (
+            id TEXT PRIMARY KEY,
+            proyecto_id TEXT,
+            monto REAL,
+            categoria TEXT,
+            concepto TEXT,
+            fecha DATE,
+            comprobante_url TEXT,
+            FOREIGN KEY (proyecto_id) REFERENCES proyectos (id)
+        )`);
+
+        db.run(`ALTER TABLE proyectos ADD COLUMN presupuesto REAL DEFAULT 0`, () => { });
+
+        db.run(`CREATE TABLE IF NOT EXISTS proyectos_fases_custom (
+            id TEXT PRIMARY KEY,
+            proyecto_id TEXT,
+            nombre TEXT,
+            orden INTEGER,
+            completada INTEGER DEFAULT 0,
+            FOREIGN KEY (proyecto_id) REFERENCES proyectos (id)
+        )`);
+
+        // Archivos Adjuntos de Tareas
+        db.run(`CREATE TABLE IF NOT EXISTS tareas_archivos (
+            id TEXT PRIMARY KEY,
+            tarea_id TEXT,
+            nombre TEXT,
+            url TEXT,
+            tipo TEXT,
+            tamano INTEGER,
+            fecha_subida DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (tarea_id) REFERENCES tareas (id)
+        )`);
+
+        // Dependencias entre Tareas
+        db.run(`CREATE TABLE IF NOT EXISTS tareas_dependencias (
+            tarea_id TEXT,
+            depende_de_id TEXT,
+            PRIMARY KEY (tarea_id, depende_de_id),
+            FOREIGN KEY (tarea_id) REFERENCES tareas (id),
+            FOREIGN KEY (depende_de_id) REFERENCES tareas (id)
+        )`);
+
+        // Archivos Adjuntos de Leads
+        db.run(`CREATE TABLE IF NOT EXISTS leads_archivos (
+            id TEXT PRIMARY KEY,
+            lead_id TEXT,
+            nombre TEXT,
+            url TEXT,
+            tipo TEXT,
+            tamano INTEGER,
+            fecha_subida DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (lead_id) REFERENCES leads (id)
+        )`);
+
+        // Seguimiento de Leads (Timeline)
+        db.run(`CREATE TABLE IF NOT EXISTS leads_seguimiento (
+            id TEXT PRIMARY KEY,
+            lead_id TEXT,
+            tipo_accion TEXT,
+            descripcion TEXT,
+            fecha DATETIME DEFAULT CURRENT_TIMESTAMP,
+            author_id TEXT,
+            FOREIGN KEY (lead_id) REFERENCES leads (id),
+            FOREIGN KEY (author_id) REFERENCES usuarios_equipo (id)
+        )`);
+
+        // Recordatorios (Notificaciones)
+        db.run(`CREATE TABLE IF NOT EXISTS recordatorios (
+            id TEXT PRIMARY KEY,
+            titulo TEXT NOT NULL,
+            descripcion TEXT,
+            fecha_hora DATETIME NOT NULL,
+            tipo TEXT DEFAULT 'tarea',
+            entidad_id TEXT,
+            entidad_tipo TEXT,
+            estado TEXT DEFAULT 'pendiente',
+            usuario_id TEXT,
+            fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (usuario_id) REFERENCES usuarios_equipo (id)
+        )`);
+
+        db.run(`ALTER TABLE usuarios_equipo ADD COLUMN rol TEXT DEFAULT 'usuario'`, () => { });
+
+        // NEBULA RADAR TABLES
+        db.run(`CREATE TABLE IF NOT EXISTS leads_radar (
+            id TEXT PRIMARY KEY,
+            nombre TEXT NOT NULL,
+            categoria TEXT,
+            delegacion TEXT,
+            direccion TEXT,
+            telefono TEXT,
+            website TEXT,
+            rating_google REAL,
+            tiene_web INTEGER DEFAULT 0,
+            tiene_facebook INTEGER DEFAULT 0,
+            tiene_instagram INTEGER DEFAULT 0,
+            tiene_tiktok INTEGER DEFAULT 0,
+            analisis_ia TEXT,
+            servicios_recomendados TEXT,
+            score_oportunidad INTEGER,
+            prioridad TEXT DEFAULT 'medium',
+            estado TEXT DEFAULT 'new',
+            guardado_crm INTEGER DEFAULT 0,
+            maps_url TEXT,
+            email TEXT,
+            facebook_url TEXT,
+            instagram_url TEXT,
+            tiktok_url TEXT,
+            fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP
+        )`);
+
+        db.run(`ALTER TABLE leads_radar ADD COLUMN maps_url TEXT`, () => { });
+        db.run(`ALTER TABLE leads_radar ADD COLUMN email TEXT`, () => { });
+        db.run(`ALTER TABLE leads_radar ADD COLUMN facebook_url TEXT`, () => { });
+        db.run(`ALTER TABLE leads_radar ADD COLUMN instagram_url TEXT`, () => { });
+        db.run(`ALTER TABLE leads_radar ADD COLUMN tiktok_url TEXT`, () => { });
+        db.run(`ALTER TABLE leads_radar ADD COLUMN fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP`, () => { });
+
+
+        // TABLA REMOVIDA - No utilizada en el sistema
+        // search_history fue creada originalmente para Nebula pero nunca implementada
+        /*
+        db.run(`CREATE TABLE IF NOT EXISTS search_history (
+            id TEXT PRIMARY KEY,
+            usuario_id TEXT DEFAULT 'admin',
+            fecha_busqueda DATETIME DEFAULT CURRENT_TIMESTAMP,
+            delegacion TEXT,
+            categoria TEXT,
+            num_resultados INTEGER
+        )`);
+        */
+
+    });
+}
+
+module.exports = db;

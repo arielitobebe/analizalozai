@@ -1,0 +1,960 @@
+ARCHIVO: public\js\projects.js
+================================================================================
+
+const Projects = {
+    init() {
+        this.renderList();
+        this.fetchProjects();
+        this.fetchClients();
+    },
+
+    clients: [],
+    projectFiles: {}, // Store files per project
+
+    async fetchClients() {
+        try {
+            const res = await fetch('/api/clientes');
+            this.clients = await res.json();
+        } catch (e) { }
+    },
+
+    async fetchProjects() {
+        try {
+            const res = await fetch('/api/proyectos');
+            const projects = await res.json();
+            this.renderProjects(projects);
+        } catch (e) {
+            UI.notify('Error al cargar proyectos', 'error');
+        }
+    },
+
+    renderList() {
+        const container = document.getElementById('module-content');
+        container.innerHTML = `
+            ${UI.renderHeader('PROYECTOS', {
+            hideSearch: true,
+            moduleTitle: 'Gestión de Proyectos',
+            description: 'Monitoreo de progreso, equipo, tareas y entregables con identidad visual.',
+            actionButton: `<button class="btn btn-primary" onclick="Projects.showCreateModal()">
+                    <i class="fa-solid fa-plus"></i> Nuevo Proyecto
+                </button>`
+        })}
+            <div class="grid-list" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap:20px;" id="projects-grid"></div>
+        `;
+        // Initialize quotes
+        if (window.MotivationalQuotes) {
+            setTimeout(() => window.MotivationalQuotes.init(), 100);
+        }
+    },
+
+    renderProjects(projects) {
+        const grid = document.getElementById('projects-grid');
+        grid.innerHTML = projects.map(p => `
+            <div class="card project-card fade-in luxury-hover" onclick="Projects.showDetails('${p.id}')">
+                <div class="project-header" style="display:flex; align-items:center; gap:15px; margin-bottom:15px;">
+                    <div class="project-icon" style="width:56px; height:56px; background:${p.color || 'linear-gradient(135deg, #6366f1, #8b5cf6)'}; border-radius:12px; display:flex; align-items:center; justify-content:center; color:white; font-size:1.5rem; box-shadow:0 4px 12px rgba(0,0,0,0.15);">
+                        <i class="fa-solid ${p.icono || 'fa-rocket'}"></i>
+                    </div>
+                    <div class="project-title" style="flex:1;">
+                        <h3 style="margin:0; font-size:1.05rem;">${p.nombre}</h3>
+                        <span class="client-name" style="font-size:0.85rem; color:var(--text-secondary);">${p.cliente_nombre || 'Sin cliente'}</span>
+                    </div>
+                    <span class="badge ${p.estado === 'completado' ? 'badge-success' : p.estado === 'en_progreso' ? 'badge-info' : 'badge-warning'}">${(p.estado || 'activo').toUpperCase()}</span>
+                </div>
+                
+                <div class="project-progress" style="margin-bottom:15px;">
+                    <div class="progress-info" style="display:flex; justify-content:space-between; font-size:0.85rem; margin-bottom:6px; font-weight:600;">
+                        <span>Progreso</span>
+                        <span style="color:var(--primary-medium);">${p.progreso || 0}%</span>
+                    </div>
+                    <div class="progress-bar" style="height:8px; background:#e2e8f0; border-radius:4px; overflow:hidden;">
+                        <div class="progress-fill" style="height:100%; width:${p.progreso || 0}%; background:var(--gradient-primary); border-radius:4px;"></div>
+                    </div>
+                </div>
+
+                <div class="project-meta" style="display:flex; gap:16px; font-size:0.85rem; color:var(--text-secondary);">
+                    <div class="meta-item" style="display:flex; align-items:center; gap:6px;">
+                        <i class="fa-regular fa-calendar"></i>
+                        <span>${p.fecha_entrega ? new Date(p.fecha_entrega).toLocaleDateString() : 'Sin fecha'}</span>
+                    </div>
+                    <div class="meta-item" style="display:flex; align-items:center; gap:6px;">
+                        <i class="fa-solid fa-paperclip"></i>
+                        <span>${(this.projectFiles[p.id] || []).length} archivos</span>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    },
+
+    async showDetails(id) {
+        try {
+            let project = null;
+            try {
+                const res = await fetch(`/api/proyectos/${id}`);
+                if (res.ok) project = await res.json();
+            } catch (e) { }
+
+            if (!project) {
+                const res = await fetch('/api/proyectos');
+                const all = await res.json();
+                project = all.find(p => p.id == id);
+            }
+
+            if (!project) return UI.notify('Proyecto no encontrado', 'error');
+
+            // Get project files from backend
+            const fileRes = await fetch(`/api/proyectos/${id}/archivos`);
+            const files = await fileRes.json();
+
+            const html = `
+                <div class="project-detail-layout">
+                    <div class="tabs-header">
+                        <button class="tab-btn active" onclick="UI.tabs.switch(this, 'tab-resumen')">Resumen</button>
+                        <button class="tab-btn" onclick="UI.tabs.switch(this, 'tab-equipo')">Equipo</button>
+                        <button class="tab-btn" onclick="UI.tabs.switch(this, 'tab-tareas')">Tareas</button>
+                        <button class="tab-btn" onclick="UI.tabs.switch(this, 'tab-fases')">Fases</button>
+                        <button class="tab-btn" onclick="UI.tabs.switch(this, 'tab-archivos')">Archivos (${files.length})</button>
+                        <button class="tab-btn" onclick="UI.tabs.switch(this, 'tab-finanzas')">Finanzas</button>
+                    </div>
+
+                    <!-- TAB 1: RESUMEN -->
+                    <div id="tab-resumen" class="tab-content active">
+                        <div class="project-identity" style="display:flex; align-items:center; gap:20px; margin-bottom:25px; padding:20px; background:#f8fafc; border-radius:12px;">
+                            <div class="project-icon-large" style="width:80px; height:80px; background:${project.color || 'linear-gradient(135deg, #6366f1, #8b5cf6)'}; border-radius:16px; display:flex; align-items:center; justify-content:center; color:white; font-size:2.5rem; box-shadow:0 8px 20px rgba(0,0,0,0.15);">
+                                <i class="fa-solid ${project.icono || 'fa-rocket'}"></i>
+                            </div>
+                            <div style="flex:1;">
+                                <h2 style="margin:0 0 5px 0;">${project.nombre}</h2>
+                                <p style="margin:0; color:var(--text-secondary);">${project.descripcion || 'Sin descripción'}</p>
+                            </div>
+                            <button class="btn btn-secondary btn-sm" onclick="Projects.editProject('${id}')">
+                                <i class="fa-solid fa-pen"></i> Editar
+                            </button>
+                        </div>
+
+                        <div class="stats-grid" style="display:grid; grid-template-columns:repeat(4,1fr); gap:15px;">
+                            ${[
+                    { label: 'Inicio', value: project.fecha_inicio ? new Date(project.fecha_inicio).toLocaleDateString() : '--', icon: 'calendar' },
+                    { label: 'Entrega', value: project.fecha_entrega ? new Date(project.fecha_entrega).toLocaleDateString() : '--', icon: 'flag-checkered' },
+                    { label: 'Progreso', value: (project.progreso || 0) + '%', icon: 'chart-line' },
+                    { label: 'Estado', value: (project.estado || 'activo').toUpperCase(), icon: 'circle-check' }
+                ].map(stat => `
+                                <div class="stat-box" style="background:white; padding:20px; border-radius:12px; text-align:center; border:1px solid #e2e8f0;">
+                                    <i class="fa-solid fa-${stat.icon}" style="font-size:1.5rem; color:var(--primary-medium); margin-bottom:10px;"></i>
+                                    <span class="label" style="display:block; color:#64748b; font-size:0.8rem; margin-bottom:5px;">${stat.label}</span>
+                                    <span class="value" style="font-weight:700; font-size:1.1rem;">${stat.value}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <!-- TAB 2: EQUIPO -->
+                    <div id="tab-equipo" class="tab-content">
+                        <div class="team-management">
+                            <div style="background:#f8fafc; padding:20px; border-radius:12px; margin-bottom:25px; border:1px solid #e2e8f0;">
+                                <h4 style="margin:0 0 15px 0; font-size:0.95rem;">Asignar Nuevo Miembro</h4>
+                                <div style="display:grid; grid-template-columns: 1fr 140px 60px; gap:10px;">
+                                    <select id="team-member-picker" class="form-select">
+                                        <option value="">-- Seleccionar Persona --</option>
+                                    </select>
+                                    <select id="team-member-role" class="form-select">
+                                        <option value="Líder">Líder</option>
+                                        <option value="Desarrollador" selected>Desarrollador</option>
+                                        <option value="Diseñador">Diseñador</option>
+                                        <option value="SEO">SEO</option>
+                                        <option value="Ads">Ads Specialist</option>
+                                        <option value="Copywriter">Copywriter</option>
+                                    </select>
+                                    <button class="btn btn-primary" onclick="Projects.assignMember('${id}')"><i class="fa-solid fa-plus"></i></button>
+                                </div>
+                            </div>
+
+                            <div id="project-team-grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:15px;">
+                                <!-- Assigned members will appear here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB 3: TAREAS (Mini Kanban) -->
+                    <div id="tab-tareas" class="tab-content">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                            <p style="color:var(--text-secondary); margin:0;">Tareas organizadas por estado</p>
+                            <button class="btn btn-primary btn-sm" onclick="Projects.showCreateTaskModal('${id}')">
+                                <i class="fa-solid fa-plus"></i> Nueva Tarea
+                            </button>
+                        </div>
+                        <div id="project-kanban-container" class="kanban-mini" style="display:flex; gap:15px; overflow-x:auto; padding-bottom:10px;">
+                            <p class="text-muted text-center" style="width:100%; padding:20px;">Cargando tareas...</p>
+                        </div>
+                    </div>
+
+                    <!-- TAB 4: FASES -->
+                    <div id="tab-fases" class="tab-content">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                            <div>
+                                <h4 style="margin:0 0 5px 0;">Cronograma de Fases</h4>
+                                <p style="margin:0; font-size:0.8rem; color:var(--text-secondary);">Progreso secuencial del proyecto.</p>
+                            </div>
+                            <button class="btn btn-secondary btn-sm" onclick="Projects.showPhasesEditor('${id}')">
+                                <i class="fa-solid fa-code-branch"></i> Personalizar Fases
+                            </button>
+                        </div>
+                        <div id="project-phases-timeline">
+                            <p class="text-muted text-center" style="padding:20px;">Cargando fases...</p>
+                        </div>
+                    </div>
+
+                    <!-- TAB 5: ARCHIVOS -->
+                    <div id="tab-archivos" class="tab-content">
+                        <div class="file-upload-zone" style="text-align:center; padding:3rem; border:3px dashed #cbd5e1; border-radius:16px; cursor:pointer; transition:0.3s; margin-bottom:25px;" onclick="document.getElementById('project-file-input-${id}').click()">
+                            <i class="fa-solid fa-cloud-arrow-up" style="font-size:3rem; color:var(--primary-medium); margin-bottom:1rem; display:block;"></i>
+                            <h4 style="margin:0 0 10px 0;">Subir Archivos del Proyecto</h4>
+                            <p style="margin:0; color:var(--text-secondary);">Documentos, assets, propuestas, contratos, entregables</p>
+                            <input type="file" id="project-file-input-${id}" style="display:none;" multiple onchange="Projects.handleFileUpload(event, '${id}')">
+                        </div>
+                        
+                        <div class="file-list" id="file-list-${id}">
+                            <p class="text-muted text-center" style="padding:40px;">Cargando archivos...</p>
+                        </div>
+                    </div>
+
+                    <!-- TAB 6: FINANZAS -->
+                    <div id="tab-finanzas" class="tab-content">
+                        <div class="budget-section">
+                            <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:20px;">
+                                <div>
+                                    <h4 style="margin:0 0 5px 0;">Resumen Financiero</h4>
+                                    <p style="margin:0; font-size:0.8rem; color:var(--text-secondary);">Seguimiento de presupuesto y gastos.</p>
+                                </div>
+                                <div style="display:flex; gap:10px;">
+                                    <button class="btn btn-secondary btn-sm" onclick="Projects.showUpdateBudgetModal('${id}', ${project.presupuesto || 0})">
+                                        <i class="fa-solid fa-pen"></i> Editar Presupuesto
+                                    </button>
+                                    <button class="btn btn-primary btn-sm" onclick="Projects.showAddExpenseModal('${id}')">
+                                        <i class="fa-solid fa-plus"></i> Registrar Gasto
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div id="project-budget-summary" style="display:grid; grid-template-columns:repeat(3,1fr); gap:20px; margin-bottom:25px;">
+                                <p class="text-muted text-center" style="grid-column: span 3; padding:20px;">Cargando resumen financiero...</p>
+                            </div>
+
+                            <div style="display:grid; grid-template-columns: 1fr 280px; gap:20px;">
+                                <div class="expenses-list-container">
+                                    <h5 style="margin:0 0 15px 0; font-size:0.9rem;">Detalle de Gastos</h5>
+                                    <div id="project-expenses-list" style="display:flex; flex-direction:column; gap:10px;">
+                                        <p class="text-muted text-center" style="padding:20px;">No hay gastos registrados.</p>
+                                    </div>
+                                </div>
+                                <div class="budget-chart-container" style="background:#f8fafc; border-radius:12px; padding:20px; display:flex; flex-direction:column; align-items:center;">
+                                    <h5 style="margin:0 0 15px 0; font-size:0.9rem; align-self:flex-start;">Consumo de Presupuesto</h5>
+                                    <div style="width:100%; height:180px; position:relative;">
+                                        <canvas id="projectBudgetChart"></canvas>
+                                    </div>
+                                    <div id="project-chart-legend" style="margin-top:15px; width:100%;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            UI.modal.show(project.nombre, html, `
+                <button class="btn btn-secondary" onclick="UI.modal.hide()">Cerrar</button>
+            `, true);
+
+            // Populate member picker, team grid and file list
+            this.populateTeamPicker();
+            this.fetchProjectTeam(id);
+            this.fetchProjectFiles(id);
+            this.fetchProjectTasks(id);
+            this.fetchProjectFinances(id);
+            this.fetchProjectPhases(id, project.fase_actual);
+
+        } catch (error) {
+            console.error('Error:', error);
+            UI.notify('Error al cargar proyecto', 'error');
+        }
+    },
+
+    async populateTeamPicker() {
+        try {
+            const res = await fetch('/api/equipo');
+            const team = await res.json();
+            const picker = document.getElementById('team-member-picker');
+            if (picker) {
+                picker.innerHTML = '<option value="">-- Seleccionar Persona --</option>' +
+                    team.map(m => `<option value="${m.id}">${m.nombre} ${m.apellido} (${m.puesto})</option>`).join('');
+            }
+        } catch (e) { }
+    },
+
+    async fetchProjectTeam(projectId) {
+        try {
+            const res = await fetch(`/api/proyectos/${projectId}/equipo`);
+            const team = await res.json();
+            this.renderProjectTeam(team, projectId);
+        } catch (e) { }
+    },
+
+    renderProjectTeam(team, projectId) {
+        const grid = document.getElementById('project-team-grid');
+        if (!grid) return;
+
+        if (team.length === 0) {
+            grid.innerHTML = '<p style="grid-column:1/-1; text-align:center; color:var(--text-secondary); padding:40px;">No hay miembros asignados a este proyecto.</p>';
+            return;
+        }
+
+        grid.innerHTML = team.map(m => `
+            <div class="member-mini-card" style="background:white; border:1px solid #e2e8f0; border-radius:12px; padding:15px; display:flex; align-items:center; gap:12px; position:relative;">
+                <img src="${m.avatar_url || `https://ui-avatars.com/api/?name=${m.nombre}+${m.apellido}&background=fff&color=9333EA`}" style="width:40px; height:40px; border-radius:50%; object-fit:cover;">
+                <div style="flex:1;">
+                    <strong style="display:block; font-size:0.9rem;">${m.nombre}</strong>
+                    <span class="badge" style="font-size:0.6rem; background:rgba(147,51,234,0.1); color:var(--primary-medium);">${(m.rol_proyecto || 'Miembro').toUpperCase()}</span>
+                </div>
+                <button class="btn btn-danger btn-sm" onclick="Projects.removeMember('${projectId}', '${m.id}')" style="padding:4px 8px; font-size:0.7rem;">
+                    <i class="fa-solid fa-times"></i>
+                </button>
+            </div>
+        `).join('');
+    },
+
+    async assignMember(projectId) {
+        const memberId = document.getElementById('team-member-picker').value;
+        const role = document.getElementById('team-member-role').value;
+
+        if (!memberId) return UI.notify('Selecciona un miembro', 'warning');
+
+        try {
+            const res = await fetch(`/api/proyectos/${projectId}/equipo`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ usuario_id: memberId, rol_proyecto: role })
+            });
+
+            if (res.ok) {
+                UI.notify('Miembro asignado', 'success');
+                this.fetchProjectTeam(projectId);
+            }
+        } catch (e) { }
+    },
+
+    async removeMember(projectId, userId) {
+        if (!confirm('¿Remover a este miembro del proyecto?')) return;
+        try {
+            const res = await fetch(`/api/proyectos/${projectId}/equipo/${userId}`, {
+                method: 'DELETE'
+            });
+
+            if (res.ok) {
+                UI.notify('Miembro removido', 'success');
+                this.fetchProjectTeam(projectId);
+            }
+        } catch (e) { }
+    },
+
+    async fetchProjectPhases(projectId, currentPhaseIdx) {
+        try {
+            const res = await fetch(`/api/proyectos/${projectId}/fases`);
+            const customPhases = await res.json();
+            this.renderPhases(projectId, customPhases, currentPhaseIdx);
+        } catch (e) {
+            console.error('Error fetching phases:', e);
+        }
+    },
+
+    renderPhases(projectId, customPhases, currentPhaseIdx) {
+        const container = document.getElementById('project-phases-timeline');
+        if (!container) return;
+
+        let phases = [];
+        let isCustom = customPhases && customPhases.length > 0;
+
+        if (isCustom) {
+            phases = customPhases;
+        } else {
+            phases = ['Planificación', 'Diseño', 'Desarrollo', 'Revisión', 'Entrega'].map((n, i) => ({
+                id: null,
+                nombre: n,
+                orden: i,
+                completada: i < currentPhaseIdx
+            }));
+        }
+
+        container.innerHTML = `
+            <div class="timeline-vertical" style="display:flex; flex-direction:column; border-left:3px solid #e2e8f0; margin-left:10px; padding-left:25px;">
+                ${phases.map((fase, idx) => {
+            const isCompleted = isCustom ? fase.completada : idx < currentPhaseIdx;
+            const isActive = isCustom ? false : idx === currentPhaseIdx;
+
+            return `
+                        <div class="timeline-item ${isActive ? 'active' : isCompleted ? 'completed' : ''}" 
+                             style="position:relative; padding-bottom:30px; cursor:pointer;" 
+                             onclick="${isCustom ? `Projects.toggleCustomPhase('${projectId}', '${fase.id}', ${!fase.completada})` : `Projects.updatePhase('${projectId}', ${idx})`}">
+                            <div class="point" style="width:14px; height:14px; background:${isCompleted ? 'var(--success)' : isActive ? 'var(--primary-medium)' : '#e2e8f0'}; border-radius:50%; position:absolute; left:-32px; top:5px; border:3px solid white; box-shadow:0 0 0 ${isActive ? '4px rgba(147, 51, 234, 0.2)' : '0'};"></div>
+                            <h5 style="margin:0 0 5px 0; font-size:0.95rem; color:${isActive ? 'var(--primary-medium)' : isCompleted ? 'var(--success)' : 'inherit'};">${fase.nombre}</h5>
+                            <p style="margin:0; font-size:0.8rem; color:var(--text-secondary);">${isCompleted ? 'Completado ✓' : isActive ? 'En progreso...' : 'Pendiente'}</p>
+                        </div>
+                    `;
+        }).join('')}
+            </div>
+        `;
+    },
+
+    showPhasesEditor(projectId) {
+        fetch(`/api/proyectos/${projectId}/fases`)
+            .then(res => res.json())
+            .then(phases => {
+                const html = `
+                    <div style="padding:10px;">
+                        <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:15px;">
+                            Al agregar fases personalizadas, se ignorará el flujo por defecto.
+                        </p>
+                        <div id="custom-phases-list" style="display:flex; flex-direction:column; gap:10px; margin-bottom:20px;">
+                            ${phases.length > 0 ? phases.map(p => `
+                                <div style="display:flex; justify-content:space-between; align-items:center; padding:10px; background:#f8fafc; border-radius:8px; border:1px solid #e2e8f0;">
+                                    <span style="font-size:0.9rem; font-weight:600;">${p.nombre}</span>
+                                    <button class="btn btn-danger btn-sm" onclick="Projects.deleteCustomPhase('${projectId}', '${p.id}')">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                </div>
+                            `).join('') : '<p class="text-muted text-center">No hay fases personalizadas aún.</p>'}
+                        </div>
+                        <div class="form-group" style="display:flex; gap:10px;">
+                            <input type="text" id="new-phase-name" class="form-control" placeholder="Nombre de nueva fase...">
+                            <button class="btn btn-primary" onclick="Projects.addCustomPhase('${projectId}')">Agregar</button>
+                        </div>
+                    </div>
+                `;
+
+                UI.modal.show('Personalizar Fases', html, `
+                    <button class="btn btn-secondary" onclick="Projects.closeSubModal('${projectId}')">Volver</button>
+                `, false);
+            });
+    },
+
+    async addCustomPhase(projectId) {
+        const nombre = document.getElementById('new-phase-name').value.trim();
+        if (!nombre) return UI.notify('Ingresa un nombre', 'warning');
+
+        try {
+            // Get current count for order
+            const res = await fetch(`/api/proyectos/${projectId}/fases`);
+            const phases = await res.json();
+
+            await fetch(`/api/proyectos/${projectId}/fases`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nombre, orden: phases.length })
+            });
+
+            UI.notify('Fase agregada', 'success');
+            this.showPhasesEditor(projectId);
+        } catch (e) {
+            UI.notify('Error al agregar', 'error');
+        }
+    },
+
+    async toggleCustomPhase(projectId, phaseId, completada) {
+        try {
+            await fetch(`/api/proyectos/${projectId}/fases/${phaseId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ completada })
+            });
+            this.fetchProjectPhases(projectId);
+        } catch (e) {
+            UI.notify('Error al actualizar fase', 'error');
+        }
+    },
+
+    async deleteCustomPhase(projectId, phaseId) {
+        if (!confirm('¿Eliminar fase?')) return;
+        try {
+            await fetch(`/api/proyectos/${projectId}/fases/${phaseId}`, { method: 'DELETE' });
+            UI.notify('Fase eliminada', 'success');
+            this.showPhasesEditor(projectId);
+        } catch (e) {
+            UI.notify('Error al eliminar', 'error');
+        }
+    },
+
+    async updatePhase(projectId, idx) {
+        try {
+            await fetch(`/api/proyectos/${projectId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ fase_actual: idx })
+            });
+            UI.notify('Fase actualizada', 'success');
+            this.fetchProjectPhases(projectId, idx);
+        } catch (e) {
+            UI.notify('Error al actualizar', 'error');
+        }
+    },
+
+    closeSubModal(projectId) {
+        this.showDetails(projectId); // Just go back to main details
+    },
+
+    handleFileUpload(event, projectId) {
+        const files = Array.from(event.target.files);
+        if (!this.projectFiles[projectId]) this.projectFiles[projectId] = [];
+
+        files.forEach(file => {
+            this.projectFiles[projectId].push({
+                name: file.name,
+                size: file.size,
+                date: new Date(),
+                file: file
+            });
+        });
+
+        UI.notify(`✅ ${files.length} archivo(s) agregado(s)`, 'success');
+        this.showDetails(projectId); // Refresh view
+    },
+
+    downloadFile(projectId, fileIndex) {
+        const file = this.projectFiles[projectId][fileIndex];
+        UI.notify(`Descargando ${file.name}...`, 'info');
+        // TODO: Implement actual download
+    },
+
+    deleteFile(projectId, fileIndex) {
+        if (confirm('¿Eliminar este archivo?')) {
+            this.projectFiles[projectId].splice(fileIndex, 1);
+            UI.notify('Archivo eliminado', 'success');
+            this.showDetails(projectId);
+        }
+    },
+
+    getFileIcon(filename) {
+        const ext = filename.split('.').pop().toLowerCase();
+        const iconMap = {
+            'pdf': 'fa-file-pdf',
+            'doc': 'fa-file-word', 'docx': 'fa-file-word',
+            'xls': 'fa-file-excel', 'xlsx': 'fa-file-excel',
+            'ppt': 'fa-file-powerpoint', 'pptx': 'fa-file-powerpoint',
+            'jpg': 'fa-file-image', 'jpeg': 'fa-file-image', 'png': 'fa-file-image', 'gif': 'fa-file-image',
+            'zip': 'fa-file-zipper', 'rar': 'fa-file-zipper',
+            'txt': 'fa-file-lines'
+        };
+        return iconMap[ext] || 'fa-file';
+    },
+
+    formatFileSize(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    },
+
+    showCreateModal() {
+        const iconOptions = [
+            { icon: 'fa-rocket', label: 'Rocket' },
+            { icon: 'fa-lightbulb', label: 'Idea' },
+            { icon: 'fa-code', label: 'Código' },
+            { icon: 'fa-palette', label: 'Diseño' },
+            { icon: 'fa-bullhorn', label: 'Marketing' },
+            { icon: 'fa-mobile', label: 'Mobile' },
+            { icon: 'fa-globe', label: 'Web' },
+            { icon: 'fa-chart-line', label: 'Analytics' }
+        ];
+
+        const colorOptions = [
+            { color: 'linear-gradient(135deg, #667eea, #764ba2)', label: 'Púrpura' },
+            { color: 'linear-gradient(135deg, #f093fb, #f5576c)', label: 'Rosa' },
+            { color: 'linear-gradient(135deg, #4facfe, #00f2fe)', label: 'Azul' },
+            { color: 'linear-gradient(135deg, #43e97b, #38f9d7)', label: 'Verde' },
+            { color: 'linear-gradient(135deg, #fa709a, #fee140)', label: 'Sunset' },
+            { color: 'linear-gradient(135deg, #30cfd0, #330867)', label: 'Ocean' }
+        ];
+
+        const html = `
+            <form id="create-project-form">
+                <div class="form-group">
+                    <label>Nombre del Proyecto <span style="color:var(--error);">*</span></label>
+                    <input type="text" name="nombre" class="form-control" required placeholder="Ej: Rediseño Web Completo">
+                </div>
+
+                <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:15px;">
+                    <div class="form-group">
+                        <label>Cliente</label>
+                        <select name="cliente_id" class="form-select">
+                            <option value="">Sin cliente asignado</option>
+                            ${this.clients.map(c => `<option value="${c.id}">${c.empresa}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Fecha de Entrega</label>
+                        <input type="date" name="fecha_entrega" class="form-control">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Descripción</label>
+                    <textarea name="descripcion" class="form-control" rows="2" placeholder="Breve descripción del alcance del proyecto..."></textarea>
+                </div>
+
+                <div class="identity-section" style="padding:20px; background:#f8fafc; border-radius:12px; margin-top:20px;">
+                    <h4 style="margin:0 0 15px 0; font-size:0.95rem;">Identidad Visual del Proyecto</h4>
+                    
+                    <div class="form-group">
+                        <label>Icono</label>
+                        <div class="icon-selector" style="display:grid; grid-template-columns:repeat(4,1fr); gap:10px;">
+                            ${iconOptions.map((opt, idx) => `
+                                <div class="icon-option ${idx === 0 ? 'selected' : ''}" onclick="Projects.selectIcon(this, '${opt.icon}')" style="padding:15px; border:2px solid ${idx === 0 ? 'var(--primary-medium)' : '#e2e8f0'}; border-radius:8px; text-align:center; cursor:pointer; transition:0.3s;">
+                                    <i class="fa-solid ${opt.icon}" style="font-size:1.5rem; color:var(--primary-medium); margin-bottom:5px;"></i>
+                                    <small style="display:block; font-size:0.7rem;">${opt.label}</small>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <input type="hidden" name="icono" id="selected-icon" value="fa-rocket">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Color de Identidad</label>
+                        <div class="color-selector" style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px;">
+                            ${colorOptions.map((opt, idx) => `
+                                <div class="color-option ${idx === 0 ? 'selected' : ''}" onclick="Projects.selectColor(this, '${opt.color}')" style="position:relative; height:60px; background:${opt.color}; border-radius:8px; cursor:pointer; border:3px solid ${idx === 0 ? 'var(--primary-dark)' : 'transparent'}; transition:0.3s; display:flex; align-items:center; justify-content:center; color:white; font-weight:600; font-size:0.85rem;">
+                                    ${opt.label}
+                                </div>
+                            `).join('')}
+                        </div>
+                        <input type="hidden" name="color" id="selected-color" value="linear-gradient(135deg, #667eea, #764ba2)">
+                    </div>
+                </div>
+            </form>
+        `;
+
+        UI.modal.show('Crear Nuevo Proyecto', html, `
+            <button class="btn btn-secondary" onclick="UI.modal.hide()">Cancelar</button>
+            <button class="btn btn-primary" onclick="Projects.handleCreate()"><i class="fa-solid fa-plus"></i> Crear Proyecto</button>
+        `);
+    },
+
+    selectIcon(element, icon) {
+        document.querySelectorAll('.icon-option').forEach(el => {
+            el.classList.remove('selected');
+            el.style.borderColor = '#e2e8f0';
+        });
+        element.classList.add('selected');
+        element.style.borderColor = 'var(--primary-medium)';
+        document.getElementById('selected-icon').value = icon;
+    },
+
+    selectColor(element, color) {
+        document.querySelectorAll('.color-option').forEach(el => {
+            el.classList.remove('selected');
+            el.style.borderColor = 'transparent';
+        });
+        element.classList.add('selected');
+        element.style.borderColor = 'var(--primary-dark)';
+        document.getElementById('selected-color').value = color;
+    },
+
+    async handleCreate() {
+        const form = document.getElementById('create-project-form');
+        if (!form.reportValidity()) return;
+
+        const data = Object.fromEntries(new FormData(form).entries());
+        data.estado = 'en_progreso';
+        data.progreso = 0;
+        data.fecha_inicio = new Date().toISOString().split('T')[0];
+
+        try {
+            const res = await fetch('/api/proyectos', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            if (res.ok) {
+                UI.notify('✅ Proyecto creado con identidad visual', 'success');
+                UI.modal.hide();
+                this.fetchProjects();
+            } else {
+                UI.notify('Error al crear proyecto', 'error');
+            }
+        } catch (error) {
+            UI.notify('Error de conexión', 'error');
+        }
+    },
+
+    async fetchProjectFinances(projectId) {
+        try {
+            const res = await fetch(`/api/proyectos/${projectId}/gastos`);
+            const expenses = await res.json();
+
+            // Get project data for budget
+            const pRes = await fetch(`/api/proyectos`);
+            const projects = await pRes.json();
+            const project = projects.find(p => p.id == projectId);
+
+            this.renderBudgetSummary(project, expenses);
+            this.renderExpensesList(projectId, expenses);
+            this.initBudgetChart(project, expenses);
+        } catch (e) {
+            console.error('Error fetching project finances:', e);
+        }
+    },
+
+    renderBudgetSummary(project, expenses) {
+        const container = document.getElementById('project-budget-summary');
+        if (!container) return;
+
+        const budget = project.presupuesto || 0;
+        const spent = expenses.reduce((sum, e) => sum + (e.monto || 0), 0);
+        const remaining = budget - spent;
+        const percentage = budget > 0 ? (spent / budget * 100).toFixed(1) : 0;
+
+        container.innerHTML = [
+            { label: 'Presupuesto Total', value: '$' + budget.toLocaleString(), icon: 'wallet', color: 'var(--primary-dark)' },
+            { label: 'Monto Gastado', value: '$' + spent.toLocaleString(), icon: 'money-bill-wave', color: 'var(--error)' },
+            { label: 'Saldo Restante', value: '$' + remaining.toLocaleString(), icon: 'piggy-bank', color: 'var(--success)' }
+        ].map(item => `
+            <div class="stat-box" style="background:#f8fafc; padding:20px; border-radius:12px; text-align:center;">
+                <i class="fa-solid fa-${item.icon}" style="font-size:1.5rem; color:${item.color}; margin-bottom:10px; display:block;"></i>
+                <small style="color:var(--text-secondary);">${item.label}</small>
+                <h3 style="margin:5px 0 0 0; color:${item.color};">${item.value}</h3>
+            </div>
+        `).join('');
+    },
+
+    renderExpensesList(projectId, expenses) {
+        const container = document.getElementById('project-expenses-list');
+        if (!container) return;
+
+        if (expenses.length === 0) {
+            container.innerHTML = '<p class="text-muted text-center" style="padding:20px;">No hay gastos registrados.</p>';
+            return;
+        }
+
+        container.innerHTML = expenses.map(e => `
+            <div class="expense-row" style="display:flex; justify-content:space-between; align-items:center; padding:12px 15px; background:white; border-radius:10px; border:1px solid #e2e8f0; border-left:4px solid #ef4444;">
+                <div style="flex:1;">
+                    <strong style="display:block; font-size:0.9rem;">${e.concepto}</strong>
+                    <small style="color:var(--text-secondary);">${new Date(e.fecha).toLocaleDateString()} · ${e.categoria || 'Sin categoría'}</small>
+                </div>
+                <div style="display:flex; align-items:center; gap:15px;">
+                    <strong style="color:var(--error);">$${e.monto.toLocaleString()}</strong>
+                    <button class="btn btn-danger btn-sm" style="padding:4px 8px;" onclick="Projects.deleteExpense('${projectId}', '${e.id}')">
+                        <i class="fa-solid fa-trash" style="font-size:0.7rem;"></i>
+                    </button>
+                </div>
+            </div>
+        `).join('');
+    },
+
+    initBudgetChart(project, expenses) {
+        const canvas = document.getElementById('projectBudgetChart');
+        if (!canvas) return;
+
+        const spent = expenses.reduce((sum, e) => sum + (e.monto || 0), 0);
+        const budget = project.presupuesto || 0;
+        const remaining = Math.max(0, budget - spent);
+        const overBudget = Math.max(0, spent - budget);
+
+        const ctx = canvas.getContext('2d');
+
+        // Destroy existing chart if any
+        if (window.pBudgetChart) window.pBudgetChart.destroy();
+
+        window.pBudgetChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Gastado', 'Restante'],
+                datasets: [{
+                    data: [spent, remaining],
+                    backgroundColor: [overBudget > 0 ? '#ef4444' : '#6366f1', '#e2e8f0'],
+                    borderWidth: 0,
+                    cutout: '75%'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+
+        const legend = document.getElementById('project-chart-legend');
+        if (legend) {
+            const percent = budget > 0 ? Math.min(100, (spent / budget * 100)) : 0;
+            legend.innerHTML = `
+                <div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:0.8rem;">
+                    <span>Progreso del Presupuesto</span>
+                    <strong>${percent.toFixed(1)}%</strong>
+                </div>
+                <div style="height:8px; background:#e2e8f0; border-radius:4px; overflow:hidden;">
+                    <div style="width:${percent}%; height:100%; background:${overBudget > 0 ? '#ef4444' : 'var(--primary-medium)'};"></div>
+                </div>
+            `;
+        }
+    },
+
+    showUpdateBudgetModal(projectId, currentBudget) {
+        const html = `
+            <div style="padding:10px;">
+                <div class="form-group">
+                    <label>Presupuesto Total del Proyecto</label>
+                    <div style="position:relative;">
+                        <span style="position:absolute; left:15px; top:12px; color:var(--text-secondary);">$</span>
+                        <input type="number" id="new-budget-val" class="form-control" style="padding-left:30px;" value="${currentBudget}" step="0.01">
+                    </div>
+                </div>
+            </div>
+        `;
+
+        UI.modal.show('Editar Presupuesto', html, `
+            <button class="btn btn-secondary" onclick="Projects.closeSubModal('${projectId}')">Cancelar</button>
+            <button class="btn btn-primary" onclick="Projects.handleUpdateBudget('${projectId}')">Actualizar</button>
+        `, false);
+    },
+
+    async handleUpdateBudget(projectId) {
+        const val = document.getElementById('new-budget-val').value;
+        try {
+            await fetch(`/api/proyectos/${projectId}/presupuesto`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ presupuesto: val })
+            });
+            UI.notify('Presupuesto actualizado', 'success');
+            this.showDetails(projectId); // Refresh main modal
+        } catch (e) {
+            UI.notify('Error al actualizar', 'error');
+        }
+    },
+
+    showAddExpenseModal(projectId) {
+        const html = `
+            <div style="padding:10px;">
+                <div class="form-group">
+                    <label>Concepto del Gasto</label>
+                    <input type="text" id="exp-concept" class="form-control" placeholder="Ej: Pago de API, Freelance, etc.">
+                </div>
+                <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-top:15px;">
+                    <div class="form-group">
+                        <label>Monto</label>
+                        <input type="number" id="exp-amount" class="form-control" placeholder="0.00">
+                    </div>
+                    <div class="form-group">
+                        <label>Categoría</label>
+                        <select id="exp-category" class="form-select">
+                            <option value="Sueldos">Sueldos / Equipo</option>
+                            <option value="Servicios">Servicios / Cloud</option>
+                            <option value="Materiales">Materiales</option>
+                            <option value="Marketing">Marketing / Ads</option>
+                            <option value="Otros" selected>Otros</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        UI.modal.show('Registrar Gasto', html, `
+            <button class="btn btn-secondary" onclick="Projects.closeSubModal('${projectId}')">Cancelar</button>
+            <button class="btn btn-primary" onclick="Projects.handleAddExpense('${projectId}')">Registrar</button>
+        `, false);
+    },
+
+    async handleAddExpense(projectId) {
+        const concept = document.getElementById('exp-concept').value;
+        const amount = document.getElementById('exp-amount').value;
+        const category = document.getElementById('exp-category').value;
+
+        if (!concept || !amount) {
+            return UI.notify('Se requiere concepto y monto', 'warning');
+        }
+
+        try {
+            await fetch(`/api/proyectos/${projectId}/gastos`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    concepto: concept,
+                    monto: amount,
+                    categoria: category
+                })
+            });
+            UI.notify('✅ Gasto registrado', 'success');
+            this.showDetails(projectId);
+        } catch (e) {
+            UI.notify('Error al registrar', 'error');
+        }
+    },
+
+    async deleteExpense(projectId, expenseId) {
+        if (!confirm('¿Estás seguro de eliminar este gasto?')) return;
+        try {
+            await fetch(`/api/proyectos/${projectId}/gastos/${expenseId}`, { method: 'DELETE' });
+            UI.notify('Gasto eliminado', 'success');
+            this.fetchProjectFinances(projectId);
+        } catch (e) {
+            UI.notify('Error al eliminar', 'error');
+        }
+    },
+
+    closeSubModal(projectId) {
+        this.showDetails(projectId); // Just go back to main details
+    },
+
+    async fetchProjectTasks(projectId) {
+        try {
+            const res = await fetch('/api/tareas');
+            const tasks = await res.json();
+            const projectTasks = tasks.filter(t => t.proyecto_id == projectId);
+            this.renderProjectTasks(projectTasks);
+        } catch (e) { }
+    },
+
+    renderProjectTasks(tasks) {
+        const container = document.getElementById('project-kanban-container');
+        if (!container) return;
+
+        const columns = [
+            { id: 'pendiente', title: 'Pendientes' },
+            { id: 'en_progreso', title: 'En Progreso' },
+            { id: 'completada', title: 'Completadas' }
+        ];
+
+        container.innerHTML = columns.map(col => {
+            const colTasks = tasks.filter(t => (t.estado || t.estatus || 'pendiente') === col.id);
+            return `
+                <div class="kanban-mini-col" style="background:white; border:1px solid #e2e8f0; border-radius:12px; min-width:250px; flex:1; padding:15px;">
+                    <h5 style="margin:0 0 15px 0; font-size:0.85rem; display:flex; justify-content:space-between; color:#64748b;">
+                        <span>${col.title}</span>
+                        <span class="badge badge-info" style="font-size:0.7rem;">${colTasks.length}</span>
+                    </h5>
+                    <div style="display:flex; flex-direction:column; gap:8px;">
+                        ${colTasks.length > 0 ? colTasks.map(t => `
+                            <div style="padding:10px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; font-size:0.8rem; cursor:pointer;" onclick="UI.modal.hide(); window.location.hash='tareas'; setTimeout(() => Tasks.showDetails('${t.id}'), 100);">
+                                <strong>${t.nombre || t.titulo}</strong>
+                            </div>
+                        `).join('') : '<p style="text-align:center; color:#94a3b8; font-size:0.75rem; padding:10px;">Sin tareas</p>'}
+                    </div>
+                </div>
+            `;
+        }).join('');
+    },
+
+    showCreateTaskModal(projectId) {
+        // Simple modal to bridge to Tasks module or handle here
+        if (confirm('¿Redirigir al módulo de tareas para crear una nueva tarea vinculada a este proyecto?')) {
+            window.location.hash = 'tareas';
+            UI.modal.hide();
+            // Optional: Auto-open create modal for tasks
+            setTimeout(() => {
+                Tasks.showCreateModal();
+                const select = document.querySelector('select[name="proyecto_id"]');
+                if (select) select.value = projectId;
+            }, 500);
+        }
+    }
+};
+
+window.Projects = Projects;

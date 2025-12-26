@@ -1,0 +1,268 @@
+ARCHIVO: public\js\reminders.js
+================================================================================
+
+// Sistema de Recordatorios
+const Reminders = {
+    reminders: [],
+    checkInterval: null,
+
+    init() {
+        this.fetchReminders();
+        this.startPeriodicCheck();
+        this.renderWidget();
+    },
+
+    async fetchReminders() {
+        try {
+            const res = await fetch('/api/recordatorios?estado=pendiente');
+            this.reminders = await res.json();
+            this.updateBadge();
+            this.checkUpcoming();
+        } catch (e) {
+            console.error('Error fetching reminders:', e);
+        }
+    },
+
+    updateBadge() {
+        const badge = document.getElementById('reminders-badge');
+        if (!badge) return;
+
+        const count = this.reminders.length;
+        if (count > 0) {
+            badge.textContent = count > 99 ? '99+' : count;
+            badge.style.display = 'flex';
+        } else {
+            badge.style.display = 'none';
+        }
+    },
+
+    checkUpcoming() {
+        const ahora = new Date();
+        const en30Min = new Date(ahora.getTime() + 30 * 60 * 1000);
+
+        this.reminders.forEach(r => {
+            const fechaRecordatorio = new Date(r.fecha_hora);
+            if (fechaRecordatorio >= ahora && fechaRecordatorio <= en30Min) {
+                this.showNotification(r);
+            }
+        });
+    },
+
+    showNotification(reminder) {
+        if (!('Notification' in window)) return;
+
+        if (Notification.permission === 'granted') {
+            new Notification(reminder.titulo, {
+                body: reminder.descripcion || 'Tienes un recordatorio pendiente',
+                icon: '/favicon.ico',
+                tag: reminder.id
+            });
+        } else if (Notification.permission !== 'denied') {
+            Notification.requestPermission().then(permission => {
+                if (permission === 'granted') {
+                    new Notification(reminder.titulo, {
+                        body: reminder.descripcion || 'Tienes un recordatorio pendiente',
+                        icon: '/favicon.ico',
+                        tag: reminder.id
+                    });
+                }
+            });
+        }
+
+        // Notificación visual en la app
+        UI.notify(`🔔 ${reminder.titulo}`, 'info');
+    },
+
+    startPeriodicCheck() {
+        // Verificar cada 5 minutos
+        this.checkInterval = setInterval(() => {
+            this.fetchReminders();
+        }, 5 * 60 * 1000);
+    },
+
+    renderWidget() {
+        const container = document.getElementById('reminders-widget');
+        if (!container) return;
+
+        if (this.reminders.length === 0) {
+            container.innerHTML = '<button class="btn btn-primary" onclick="Reminders.showCreateModal()" style="font-size:0.85rem; padding:8px 20px; min-width:200px;"><i class="fa-solid fa-bell" style="margin-right:8px; color:white;"></i>Sin Recordatorios</button>';
+            return;
+        }
+
+        // Mostrar solo el más reciente
+        const mostRecent = this.reminders[0];
+        const fecha = new Date(mostRecent.fecha_hora);
+        const ahora = new Date();
+        const esVencido = fecha < ahora;
+
+        // Calcular tiempo restante o vencido
+        const diff = fecha - ahora;
+        const dias = Math.floor(Math.abs(diff) / (1000 * 60 * 60 * 24));
+        const horas = Math.floor((Math.abs(diff) % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+
+        let timeText = '';
+        if (esVencido) {
+            if (dias > 0) timeText = `Vencido hace ${dias}d`;
+            else if (horas > 0) timeText = `Vencido hace ${horas}h`;
+            else timeText = 'Vencido hoy';
+        } else {
+            if (dias > 0) timeText = `En ${dias}d`;
+            else if (horas > 0) timeText = `En ${horas}h`;
+            else timeText = 'Hoy';
+        }
+
+        // Texto con contador si hay más
+        const countText = this.reminders.length > 1 ? ` (${this.reminders.length})` : '';
+
+        container.innerHTML = `
+            <button 
+                onclick="Reminders.showModal()" 
+                class="btn btn-primary" 
+                style="font-size:0.85rem; padding:10px 20px; display:flex; align-items:center; gap:12px; min-width:250px;"
+                title="Click para ver ${this.reminders.length === 1 ? 'recordatorio' : 'todos los recordatorios'}"
+            >
+                <i class="fa-solid fa-bell${esVencido ? ' fa-shake' : ''}" style="color:white; font-size:1rem;"></i>
+                <div style="display:flex; flex-direction:column; align-items:flex-start; gap:2px; flex:1;">
+                    <span style="font-weight:600; font-size:0.85rem; color:white;">${mostRecent.titulo}${countText}</span>
+                    <span style="font-size:0.75rem; opacity:0.9; color:white;">${timeText}</span>
+                </div>
+            </button>
+        `;
+    },
+
+    showModal() {
+        this.fetchReminders().then(() => {
+            const html = `
+                <div style="padding:10px;">
+                    <div id="reminders-list" style="max-height:400px; overflow-y:auto;">
+                        ${this.reminders.map(r => {
+                const fecha = new Date(r.fecha_hora);
+                const esVencido = fecha < new Date();
+                return `
+                                <div class="reminder-item" style="padding:15px; background:${esVencido ? '#fef2f2' : 'white'}; border:1px solid ${esVencido ? 'var(--error)' : '#e2e8f0'}; border-radius:10px; margin-bottom:10px;">
+                                    <div style="display:flex; justify-content:space-between;">
+                                        <div>
+                                            <strong style="color:${esVencido ? 'var(--error)' : 'inherit'};">${r.titulo}</strong>
+                                            <p style="margin:5px 0; font-size:0.9rem; color:var(--text-secondary);">${r.descripcion || ''}</p>
+                                            <small style="color:var(--text-secondary);">${fecha.toLocaleString()}</small>
+                                        </div>
+                                        <div>
+                                            <button class="btn btn-success btn-sm" onclick="Reminders.complete('${r.id}')"><i class="fa-solid fa-check"></i></button>
+                                            <button class="btn btn-danger btn-sm" onclick="Reminders.delete('${r.id}')"><i class="fa-solid fa-trash"></i></button>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+            }).join('')}
+                    </div>
+                </div>
+            `;
+
+            UI.modal.show('Recordatorios Pendientes', html, `
+                <button class="btn btn-primary" onclick="Reminders.showCreateModal()">
+                    <i class="fa-solid fa-plus"></i> Nuevo Recordatorio
+                </button>
+                <button class="btn btn-secondary" onclick="UI.modal.hide()">Cerrar</button>
+            `, true);
+        });
+    },
+
+    showCreateModal() {
+        const html = `
+            <div style="padding:10px;">
+                <div class="form-group">
+                    <label>Título del Recordatorio</label>
+                    <input type="text" id="reminder-title" class="form-control" placeholder="Ej: Llamar a cliente">
+                </div>
+                <div class="form-group" style="margin-top:15px;">
+                    <label>Descripción</label>
+                    <textarea id="reminder-desc" class="form-control" rows="2" placeholder="Detalles adicionales..."></textarea>
+                </div>
+                <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-top:15px;">
+                    <div class="form-group">
+                        <label>Fecha</label>
+                        <input type="date" id="reminder-date" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Hora</label>
+                        <input type="time" id="reminder-time" class="form-control">
+                    </div>
+                </div>
+                <div class="form-group" style="margin-top:15px;">
+                    <label>Tipo</label>
+                    <select id="reminder-type" class="form-select">
+                        <option value="tarea">📝 Tarea</option>
+                        <option value="reunion">🤝 Reunión</option>
+                        <option value="llamada">📞 Llamada</option>
+                        <option value="evento">📅 Evento</option>
+                    </select>
+                </div>
+            </div>
+        `;
+
+        UI.modal.show('Crear Recordatorio', html, `
+            <button class="btn btn-secondary" onclick="Reminders.showModal()">Cancelar</button>
+            <button class="btn btn-primary" onclick="Reminders.create()">
+                <i class="fa-solid fa-bell"></i> Crear
+            </button>
+        `, false);
+    },
+
+    async create() {
+        const titulo = document.getElementById('reminder-title').value;
+        const descripcion = document.getElementById('reminder-desc').value;
+        const fecha = document.getElementById('reminder-date').value;
+        const hora = document.getElementById('reminder-time').value;
+        const tipo = document.getElementById('reminder-type').value;
+
+        if (!titulo || !fecha || !hora) {
+            return UI.notify('Completa todos los campos obligatorios', 'warning');
+        }
+
+        const fecha_hora = `${fecha}T${hora}:00`;
+
+        try {
+            const res = await fetch('/api/recordatorios', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ titulo, descripcion, fecha_hora, tipo })
+            });
+
+            if (res.ok) {
+                UI.notify('✅ Recordatorio creado', 'success');
+                await this.fetchReminders();
+                this.renderWidget();
+                this.showModal();
+            }
+        } catch (e) {
+            UI.notify('Error al crear recordatorio', 'error');
+        }
+    },
+
+    async complete(id) {
+        try {
+            await fetch(`/api/recordatorios/${id}/completar`, { method: 'PATCH' });
+            UI.notify('✅ Recordatorio completado', 'success');
+            await this.fetchReminders();
+            this.renderWidget();
+            this.showModal();
+        } catch (e) {
+            UI.notify('Error al completar', 'error');
+        }
+    },
+
+    async delete(id) {
+        if (!confirm('¿Eliminar este recordatorio?')) return;
+        try {
+            await fetch(`/api/recordatorios/${id}`, { method: 'DELETE' });
+            UI.notify('Recordatorio eliminado', 'success');
+            await this.fetchReminders();
+            this.renderWidget();
+            this.showModal();
+        } catch (e) {
+            UI.notify('Error al eliminar', 'error');
+        }
+    }
+};
+
+window.Reminders = Reminders;

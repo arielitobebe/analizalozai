@@ -1,0 +1,114 @@
+ARCHIVO: server\routes\leads.routes.js
+================================================================================
+
+const express = require('express');
+const router = express.Router();
+const db = require('../db');
+const { v4: uuidv4 } = require('uuid');
+
+// Get all leads
+router.get('/', (req, res) => {
+    db.all('SELECT * FROM leads ORDER BY fecha_creacion DESC', (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows);
+    });
+});
+
+// Create lead
+router.post('/', (req, res) => {
+    const {
+        nombre, empresa, persona_encargada, correo_electronico,
+        telefono, fuente, estatus, temperatura, asignado_id, notas
+    } = req.body;
+    const id = uuidv4();
+
+    const query = `INSERT INTO leads (id, nombre, empresa, persona_encargada, correo_electronico, telefono, fuente, estatus, temperatura, asignado_id, notas) 
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+
+    db.run(query, [
+        id, nombre, empresa, persona_encargada, correo_electronico,
+        telefono, fuente, estatus || 'nuevo', temperatura || 'tibio', asignado_id || null, notas
+    ], function (err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.status(201).json({ id, message: 'Lead creado con éxito' });
+    });
+});
+
+// Update lead status
+router.patch('/:id/status', (req, res) => {
+    const { estatus } = req.body;
+    const { id } = req.params;
+
+    db.run('UPDATE leads SET estatus = ? WHERE id = ?', [estatus, id], function (err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ message: 'Estatus actualizado' });
+    });
+});
+
+// Convert Lead to Client
+router.post('/:id/convert', (req, res) => {
+    const { id } = req.params;
+
+    db.get('SELECT * FROM leads WHERE id = ?', [id], (err, lead) => {
+        if (err || !lead) return res.status(404).json({ error: 'Lead no encontrado' });
+
+        const clientId = uuidv4();
+        // Updated query to match the 13 columns + logo_url logic (total 14 in db.js currently)
+        // Wait, db.js clientes has: id, nombre_negocio, persona_encargada, correo_electronico, telefono, celular, direccion, estado_pago, monto_total, monto_pagado, monto_pendiente, vendedor_id, logo_url, fecha_registro
+        // That's 13 explicit columns to insert (excluding fecha_registro)
+
+        const query = `INSERT INTO clientes (
+            id, nombre_negocio, persona_encargada, correo_electronico, 
+            telefono, celular, direccion, vendedor_id, monto_total, 
+            monto_pagado, monto_pendiente, estado_pago, estado, logo_url
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 'pendiente', 'activo', ?)`;
+
+        db.run(query, [
+            clientId,
+            lead.empresa || lead.nombre,
+            lead.persona_encargada || lead.nombre,
+            lead.correo_electronico,
+            lead.telefono,
+            lead.telefono,
+            '', // direccion
+            lead.asignado_id,
+            '' // logo_url
+        ], function (err) {
+            if (err) {
+                console.error('Conversion error:', err);
+                return res.status(500).json({ error: err.message });
+            }
+
+            // Delete lead or mark as converted
+            db.run('DELETE FROM leads WHERE id = ?', [id], (deleteErr) => {
+                if (deleteErr) console.error('Delete error after conversion:', deleteErr);
+                res.status(201).json({ clientId, message: 'Lead convertido a cliente con éxito' });
+            });
+        });
+    });
+});
+
+// Get lead interactions (Timeline)
+router.get('/:id/interacciones', (req, res) => {
+    const { id } = req.params;
+    db.all('SELECT * FROM leads_interacciones WHERE lead_id = ? ORDER BY fecha DESC', [id], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows);
+    });
+});
+
+// Add lead interaction
+router.post('/:id/interacciones', (req, res) => {
+    const { id: lead_id } = req.params;
+    const { tipo, descripcion } = req.body;
+    const id = uuidv4();
+
+    const query = `INSERT INTO leads_interacciones (id, lead_id, tipo, descripcion) VALUES (?, ?, ?, ?)`;
+
+    db.run(query, [id, lead_id, tipo, descripcion], function (err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.status(201).json({ id, message: 'Interacción registrada' });
+    });
+});
+
+module.exports = router;

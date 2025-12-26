@@ -1,0 +1,244 @@
+ARCHIVO: public\js\services.js
+================================================================================
+
+const Services = {
+    init() {
+        this.renderList();
+        this.fetchServices();
+    },
+
+    async fetchServices() {
+        try {
+            const response = await fetch('/api/servicios');
+            const services = await response.json();
+            this.renderServices(services);
+        } catch (error) {
+            UI.notify('Error al cargar servicios', 'error');
+        }
+    },
+
+    renderList() {
+        const container = document.getElementById('module-content');
+        container.innerHTML = `
+            ${UI.renderHeader('SERVICIOS', {
+            hideSearch: true,
+            moduleTitle: 'Catálogo de Servicios',
+            description: 'Administra los productos y servicios que ofreces a tus clientes.',
+            actionButton: `<button class="btn btn-primary" id="btn-new-service">
+                    <i class="fa-solid fa-plus"></i> Nuevo Servicio
+                </button>`
+        })}
+            <div class="grid-list" id="services-grid"></div>
+        `;
+        // Initialize quotes
+        if (window.MotivationalQuotes) {
+            setTimeout(() => window.MotivationalQuotes.init(), 100);
+        }
+        document.getElementById('btn-new-service').onclick = () => this.showCreateModal();
+    },
+
+    renderServices(services) {
+        const grid = document.getElementById('services-grid');
+        if (!grid) return;
+
+        if (services.length === 0) {
+            grid.innerHTML = '<div class="card" style="text-align: center; padding: 40px;">No hay servicios registrados</div>';
+            return;
+        }
+
+        grid.innerHTML = services.map(service => `
+            <div class="card service-card fade-in">
+                <div class="service-icon" style="font-size: 2rem; color: var(--primary-medium); margin-bottom: 15px;">
+                    <i class="fa-solid fa-${this.getIconByCategory(service.categoria)}"></i>
+                </div>
+                <h3 style="margin-bottom: 10px;">${service.nombre}</h3>
+                <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 15px;">
+                    ${service.descripcion || 'Sin descripción'}
+                </p>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <span class="badge" style="background: var(--info); color: white; font-size: 0.75rem;">${service.categoria || 'General'}</span>
+                    <strong style="color: var(--success); font-size: 1.1rem;">$${(service.precio || 0).toLocaleString()}</strong>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-secondary btn-sm" style="flex: 1;" onclick="Services.showEditModal('${service.id}')">
+                        <i class="fa-solid fa-pen"></i> Editar
+                    </button>
+                    <button class="btn btn-danger btn-sm" onclick="Services.deleteService('${service.id}')">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        `).join('');
+    },
+
+    getIconByCategory(cat) {
+        const icons = {
+            'Diseño': 'palette',
+            'Desarrollo': 'code',
+            'Marketing': 'bullhorn',
+            'Consultoría': 'lightbulb',
+            'Branding': 'copyright'
+        };
+        return icons[cat] || 'briefcase';
+    },
+
+    async showCreateModal() {
+        const html = `
+            <form id="service-form">
+                <div class="form-group">
+                    <label>Nombre del Servicio <span class="required">*</span></label>
+                    <input type="text" name="nombre" class="form-control" required placeholder="Ej: Diseño de Logotipo Premium">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Categoría</label>
+                        <select name="categoria" class="form-select">
+                            <option value="Diseño">Diseño</option>
+                            <option value="Desarrollo">Desarrollo</option>
+                            <option value="Marketing">Marketing</option>
+                            <option value="Consultoría">Consultoría</option>
+                            <option value="Branding">Branding</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Costo Base</label>
+                        <input type="number" name="costo" class="form-control" placeholder="0.00">
+                    </div>
+                </div>
+                <div class="form-group full-width">
+                    <label>Descripción</label>
+                    <textarea name="descripcion" class="form-textarea" placeholder="Describe qué incluye este servicio..."></textarea>
+                </div>
+                <div class="form-group full-width">
+                    <label>Notas Internas</label>
+                    <textarea name="notas" class="form-textarea" placeholder="Información adicional para el equipo..."></textarea>
+                </div>
+            </form>
+        `;
+
+        UI.modal.show('Crear Nuevo Servicio', html, `
+            <button class="btn btn-secondary" onclick="UI.modal.hide()">Cancelar</button>
+            <button class="btn btn-primary" id="save-service-btn">Guardar Servicio</button>
+        `);
+
+        document.getElementById('save-service-btn').onclick = () => this.handleSave();
+    },
+
+    async handleSave() {
+        const form = document.getElementById('service-form');
+        if (!form.reportValidity()) return;
+
+        const data = Object.fromEntries(new FormData(form).entries());
+
+        try {
+            const res = await fetch('/api/servicios', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            if (res.ok) {
+                UI.notify('Servicio creado', 'success');
+                UI.modal.hide();
+                this.fetchServices();
+            } else {
+                UI.notify('Error al crear servicio', 'error');
+            }
+        } catch (error) {
+            UI.notify('Error de conexión', 'error');
+        }
+    },
+
+    async showEditModal(serviceId) {
+        try {
+            const res = await fetch('/api/servicios');
+            const services = await res.json();
+            const service = services.find(s => s.id === serviceId);
+
+            if (!service) return UI.notify('Servicio no encontrado', 'error');
+
+            const html = `
+                <form id="edit-service-form">
+                    <input type="hidden" name="id" value="${service.id}">
+                    <div class="form-group">
+                        <label>Nombre del Servicio</label>
+                        <input type="text" name="nombre" class="form-control" value="${service.nombre}" required>
+                    </div>
+                    <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">
+                        <div class="form-group">
+                            <label>Categoría</label>
+                            <select name="categoria" class="form-select">
+                                <option value="desarrollo" ${service.categoria === 'desarrollo' ? 'selected' : ''}>💻 Desarrollo</option>
+                                <option value="diseño" ${service.categoria === 'diseño' ? 'selected' : ''}>🎨 Diseño</option>
+                                <option value="marketing" ${service.categoria === 'marketing' ? 'selected' : ''}>📊 Marketing</option>
+                                <option value="consultoria" ${service.categoria === 'consultoria' ? 'selected' : ''}>💼 Consultoría</option>
+                                <option value="otros" ${service.categoria === 'otros' ? 'selected' : ''}>📦 Otros</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Precio Base</label>
+                            <input type="number" name="precio" class="form-control" value="${service.precio || 0}" step="0.01" min="0">
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-top: 15px;">
+                        <label>Descripción</label>
+                        <textarea name="descripcion" class="form-control" rows="3">${service.descripcion || ''}</textarea>
+                    </div>
+                </form>
+            `;
+
+            UI.modal.show('Editar Servicio', html, `
+                <button class="btn btn-secondary" onclick="UI.modal.hide()">Cancelar</button>
+                <button class="btn btn-primary" onclick="Services.handleUpdate()">
+                    <i class="fa-solid fa-save"></i> Guardar Cambios
+                </button>
+            `, false);
+        } catch (e) {
+            UI.notify('Error al cargar servicio', 'error');
+        }
+    },
+
+    async handleUpdate() {
+        const form = document.getElementById('edit-service-form');
+        if (!form.reportValidity()) return;
+
+        const data = Object.fromEntries(new FormData(form).entries());
+        const serviceId = data.id;
+
+        try {
+            const res = await fetch(`/api/servicios/${serviceId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            if (res.ok) {
+                UI.notify('✅ Servicio actualizado', 'success');
+                UI.modal.hide();
+                this.fetchServices();
+            } else {
+                UI.notify('Error al actualizar servicio', 'error');
+            }
+        } catch (e) {
+            UI.notify('Error de conexión', 'error');
+        }
+    },
+
+    async deleteService(serviceId) {
+        if (!confirm('¿Eliminar este servicio? Esta acción no se puede deshacer.')) return;
+
+        try {
+            const res = await fetch(`/api/servicios/${serviceId}`, { method: 'DELETE' });
+            if (res.ok) {
+                UI.notify('Servicio eliminado', 'success');
+                this.fetchServices();
+            } else {
+                UI.notify('Error al eliminar servicio', 'error');
+            }
+        } catch (e) {
+            UI.notify('Error de conexión', 'error');
+        }
+    }
+};
+
+window.Services = Services;

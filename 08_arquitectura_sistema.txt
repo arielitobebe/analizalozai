@@ -1,0 +1,184 @@
+ARQUITECTURA DEL SISTEMA - NOVADEX CRM
+${'='.repeat(80)}
+
+PATRÓN ARQUITECTÓNICO
+${'-'.repeat(80)}
+Arquitectura: Cliente-Servidor de 3 capas
+Tipo: Monolito Modular
+Frontend: SPA (Single Page Application)
+Backend: API REST with Express.js
+Base de Datos: SQLite (embedded database)
+
+DIAGRAMA DE ARQUITECTURA
+${'-'.repeat(80)}
+
+┌─────────────────────────────────────────────────────────────┐
+│                     CAPA DE PRESENTACIÓN                     │
+│                   (Frontend - public/)                       │
+├─────────────────────────────────────────────────────────────┤
+│  index.html (Shell)                                          │
+│  │                                                            │
+│  ├─ main.js (Router + UI Manager)                           │
+│  │                                                            │
+│  ├─ Módulos de Negocio:                                     │
+│  │  ├─ dashboard.js    (Métricas)                           │
+│  │  ├─ leads.js        (Gestión de Leads)                   │
+│  │  ├─ clients.js      (Gestión de Clientes)                │
+│  │  ├─ projects.js     (Gestión de Proyectos)               │
+│  │  ├─ tasks.js        (Tablero Kanban)                     │
+│  │  ├─ sales.js        (Pipeline de Ventas)                 │
+│  │  ├─ finance.js      (Control Financiero)                 │
+│  │  ├─ team.js         (Gestión de Equipo)                  │
+│  │  ├─ nebula.js       (Radar de Prospectos)                │
+│  │  ├─ calendar.js     (Calendario)                         │
+│  │  ├─ quotes.js       (Cotizaciones)                       │
+│  │  └─ ... otros 6 módulos                                  │
+│  │                                                            │
+│  └─ Estilos:                                                 │
+│     ├─ styles.css      (Design System)                      │
+│     └─ modules.css     (Componentes)                        │
+└─────────────────────────────────────────────────────────────┘
+                              ↓ HTTP/AJAX
+┌─────────────────────────────────────────────────────────────┐
+│                     CAPA DE APLICACIÓN                       │
+│                   (Backend - server/)                        │
+├─────────────────────────────────────────────────────────────┤
+│  index.js (Express Server)                                   │
+│  │                                                            │
+│  ├─ Middleware:                                              │
+│  │  ├─ cors()                                                │
+│  │  ├─ express.json()                                        │
+│  │  └─ express.static()                                      │
+│  │                                                            │
+│  ├─ Routes (21 archivos):                                    │
+│  │  ├─ /api/nebula         → nebula.js                      │
+│  │  ├─ /api/leads          → leads.routes.js                │
+│  │  ├─ /api/clientes       → clientes.routes.js             │
+│  │  ├─ /api/proyectos      → proyectos.routes.js            │
+│  │  ├─ /api/tareas         → tareas.routes.js               │
+│  │  ├─ /api/ventas         → ventas.routes.js               │
+│  │  ├─ /api/finanzas       → finanzas.routes.js             │
+│  │  ├─ /api/equipo         → equipo.routes.js               │
+│  │  ├─ /api/cotizaciones   → cotizaciones.routes.js         │
+│  │  └─ ... +12 rutas más                                     │
+│  │                                                            │
+│  └─ Services (Lógica de Negocio):                           │
+│     ├─ scraper.js          (Web Scraping con Puppeteer)     │
+│     └─ rate-limiter.js     (Control de uso)                 │
+└─────────────────────────────────────────────────────────────┘
+                              ↓ SQL
+┌─────────────────────────────────────────────────────────────┐
+│                     CAPA DE DATOS                            │
+│                   (Database - SQLite)                        │
+├─────────────────────────────────────────────────────────────┤
+│  db.js (Schema + Connections)                                │
+│  │                                                            │
+│  └─ 28 Tablas:                                               │
+│     ├─ usuarios_equipo                                       │
+│     ├─ leads                                                 │
+│     ├─ leads_interacciones                                   │
+│     ├─ leads_archivos                                        │
+│     ├─ leads_seguimiento                                     │
+│     ├─ leads_radar (Nebula)                                  │
+│     ├─ clientes                                              │
+│     ├─ clientes_archivos                                     │
+│     ├─ clientes_notas                                        │
+│     ├─ proyectos                                             │
+│     ├─ proyectos_archivos                                    │
+│     ├─ proyectos_equipo                                      │
+│     ├─ proyectos_gastos                                      │
+│     ├─ proyectos_fases_custom                                │
+│     ├─ tareas                                                │
+│     ├─ tareas_archivos                                       │
+│     ├─ tareas_dependencias                                   │
+│     ├─ ventas                                                │
+│     ├─ ventas_items                                          │
+│     ├─ servicios                                             │
+│     ├─ cotizaciones                                          │
+│     ├─ cotizacion_items                                      │
+│     ├─ registros_financieros                                 │
+│     ├─ gastos_recurrentes                                    │
+│     ├─ pagos_clientes                                        │
+│     ├─ recordatorios                                         │
+│     ├─ avisos_comunidad                                      │
+│     └─ configuracion_sistema                                 │
+└─────────────────────────────────────────────────────────────┘
+
+FLUJO DE COMUNICACIÓN
+${'-'.repeat(80)}
+
+Usuario → Frontend (SPA) → API REST → Backend Logic → Database
+
+1. Usuario interactúa con interfaz (click, form submit)
+2. JavaScript del módulo captura evento
+3. fetch() envía petición HTTP a /api/*
+4. Express router determina handler correcto
+5. Handler ejecuta lógica (CRUD, business rules)
+6. SQLite3 ejecuta query
+7. Resultado se serializa a JSON
+8. Frontend recibe respuesta
+9. DOM se actualiza dinámicamente
+
+CARACTERÍSTICAS CLAVE
+${'-'.repeat(80)}
+
+✅ Modularidad: Cada módulo es independiente
+✅ RESTful: API sigue principios REST
+✅ Stateless: Backend no mantiene sesión (JWT para futuro)
+✅ Separación de Concerns: Capas bien definidas
+✅ Single Page App: Sin recargas de página
+✅ Client-Side Routing: main.js maneja navegación
+✅ Responsive: CSS Grid + Flexbox
+
+TECNOLOGÍAS POR CAPA
+${'-'.repeat(80)}
+
+Frontend:
+- HTML5 (estructura)
+- CSS3 (estilos)
+- Vanilla JavaScript (lógica)
+- Font Awesome (iconos)
+- FullCalendar (calendario)
+- Chart.js (gráficas)
+
+Backend:
+- Node.js v18+ (runtime)
+- Express.js 4.18 (framework)
+- SQLite3 5.1 (database)
+- Puppeteer 24.34 (scraping)
+- Multer 1.4 (uploads)
+- UUID 13.0 (IDs)
+
+PATRONES DE DISEÑO
+${'-'.repeat(80)}
+
+1. Module Pattern (Frontend):
+   - Cada módulo JS es un objeto con métodos públicos
+   - Encapsulación de estado interno
+   
+2. Router Pattern (Frontend):
+   - main.js maneja navegación con hash routing
+   
+3. MVC Adaptado (Backend):
+   - Routes = Controllers
+   - Services = Business Logic
+   - db.js = Model Layer
+   
+4. Repository Pattern (implícito):
+   - db.js abstrae acceso a datos
+   
+5. Factory Pattern:
+   - UUID generation para IDs
+
+ESCALABILIDAD
+${'-'.repeat(80)}
+
+Actual: Monolito modular
+- ✅ Adecuado para: equipos pequeños (<50 usuarios)
+- ⚠️ Limitaciones: Una instancia, una DB
+
+Futuro posible:
+- Microservicios: Separar Nebula en servicio independiente
+- Database: Migrar de SQLite a PostgreSQL
+- Session Management: Implementar Redis
+- Load Balancing: Múltiples instancias con NGINX

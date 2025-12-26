@@ -1,0 +1,502 @@
+RUTAS API COMPLETAS - NOVADEX CRM
+${'='.repeat(80)}
+
+ÍNDICE DE ENDPOINTS
+${'-'.repeat(80)}
+Total de Endpoints: 80+
+Archivos de Rutas: 21
+
+${'='.repeat(80)}
+1. NEBULA RADAR API
+${'='.repeat(80)}
+Archivo: server/routes/nebula.js
+
+POST /api/nebula/search
+  Descripción: Busca prospectos en Google Maps
+  Body:
+    - query: string (ej: "coffee shop en Condesa, CDMX")
+    - delegacion: string
+    - categoria: string
+  Response:
+    - success: boolean
+    - count: number
+    - data: Array<Lead>
+    - cooldown: number (ms)
+  Rate Limit: 3 leads cada 7 min
+  
+GET /api/nebula/status
+  Descripción: Verifica estado de cooldown
+  Response:
+    - allowed: boolean
+    - waitTime: number (ms)
+    - minutesLeft: number
+    
+POST /api/nebula/save/:id
+  Descripción: Guarda lead del radar en CRM
+  Params: id (lead ID)
+  Response:
+    - success: boolean
+    - message: string
+    
+GET /api/nebula/history
+  Descripción: Historial de leads encontrados
+  Response:
+    - success: boolean
+    - leads: Array<Lead>
+    
+GET /api/nebula/export-csv
+  Descripción: Exporta leads a CSV
+  Response: Archivo CSV downloadable
+
+${'='.repeat(80)}
+2. LEADS API
+${'='.repeat(80)}
+Archivo: server/routes/leads.routes.js
+
+GET /api/leads
+  Descripción: Obtener todos los leads
+  Response: Array<Lead>
+  
+POST /api/leads
+  Descripción: Crear nuevo lead
+  Body:
+    - nombre: string (requerido)
+    - empresa: string
+    - persona_encargada: string
+    - correo_electronico: string
+    - telefono: string
+    - fuente: string
+    - estatus: string (nuevo|contactado|calificado|perdido)
+    - temperatura: string (frio|tibio|caliente)
+    - asignado_id: string (UUID)
+    - notas: string
+  Response:
+    - id: string (UUID)
+    - message: string
+    
+PATCH /api/leads/:id/status
+  Descripción: Actualizar estatus de lead
+  Params: id (lead ID)
+  Body:
+    - estatus: string
+  Response:
+    - message: string
+    
+POST /api/leads/:id/convert
+  Descripción: Convertir lead a cliente
+  Params: id (lead ID)
+  Response:
+    - clientId: string (UUID)
+    - message: string
+    
+GET /api/leads/:id/interacciones
+  Descripción: Timeline de interacciones
+  Params: id (lead ID)
+  Response: Array<Interaccion>
+  
+POST /api/leads/:id/interacciones
+  Descripción: Agregar interacción
+  Params: id (lead ID)
+  Body:
+    - tipo: string (llamada|email|reunion|nota)
+    - descripcion: string
+  Response:
+    - id: string (UUID)
+    - message: string
+
+${'='.repeat(80)}
+3. CLIENTES API
+${'='.repeat(80)}
+Archivo: server/routes/clientes.routes.js
+
+GET /api/clientes
+  Descripción: Listar todos los clientes
+  Response: Array<Cliente>
+  
+GET /api/clientes/:id
+  Descripción: Obtener cliente específico
+  Params: id (cliente ID)
+  Response: Cliente
+  
+POST /api/clientes
+  Descripción: Crear nuevo cliente
+  Body:
+    - nombre_negocio: string (requerido)
+    - persona_encargada: string (requerido)
+    - correo_electronico: string (requerido)
+    - telefono: string
+    - celular: string
+    - direccion: string
+    - vendedor_id: string (UUID)
+    - notas: string
+  Response:
+    - id: string (UUID)
+    - message: string
+    
+PUT /api/clientes/:id
+  Descripción: Actualizar cliente
+  Params: id (cliente ID)
+  Body: (campos a actualizar)
+  Response:
+    - message: string
+
+GET /api/clientes/:id/archivos
+  Descripción: Archivos del cliente
+  Params: id (cliente ID)
+  Response: Array<Archivo>
+  
+POST /api/clientes/:id/archivos
+  Descripción: Subir archivo
+  Params: id (cliente ID)
+  Body: FormData (multipart/form-data)
+  Response:
+    - id: string (UUID)
+    - message: string
+    
+DELETE /api/clientes/:id/archivos/:archivo_id
+  Descripción: Eliminar archivo
+  Params: id, archivo_id
+  Response:
+    - message: string
+
+GET /api/clientes/:id/notas
+  Descripción: Notas del cliente
+  Params: id (cliente ID)
+  Response: Array<Nota>
+  
+POST /api/clientes/:id/notas
+  Descripción: Crear nota
+  Params: id (cliente ID)
+  Body:
+    - tipo: string
+    - titulo: string
+    - contenido: string
+    - autor_id: string (UUID)
+  Response:
+    - id: string (UUID)
+    
+PUT /api/clientes/:id/notas/:nota_id
+  Descripción: Actualizar nota
+  Params: id, nota_id
+  Body:
+    - titulo: string
+    - contenido: string
+  Response:
+    - message: string
+    
+DELETE /api/clientes/:id/notas/:nota_id
+  Descripción: Eliminar nota
+  Params: id, nota_id
+  Response:
+    - message: string
+
+GET /api/clientes/:id/pagos
+  Descripción: Historial de pagos
+  Params: id (cliente ID)
+  Response: Array<Pago>
+  
+POST /api/clientes/:id/pagos
+  Descripción: Registrar pago
+  Params: id (cliente ID)
+  Body:
+    - monto: number
+    - metodo: string (efectivo|transferencia|tarjeta|cheque)
+    - concepto: string
+  Response:
+    - id: string (UUID)
+
+${'='.repeat(80)}
+4. PROYECTOS API
+${'='.repeat(80)}
+Archivo: server/routes/proyectos.routes.js
+
+GET /api/proyectos
+  Descripción: Listar proyectos
+  Response: Array<Proyecto>
+  
+GET /api/proyectos/:id
+  Descripción: Proyecto específico
+  Params: id
+  Response: Proyecto
+  
+POST /api/proyectos
+  Descripción: Crear proyecto
+  Body:
+    - nombre: string
+    - cliente_id: string (UUID)
+    - servicio_id: string (UUID)
+    - descripcion: string
+    - fecha_inicio: date
+    - fecha_entrega_estimada: date
+  Response:
+    - id: string (UUID)
+    
+PUT /api/proyectos/:id
+  Descripción: Actualizar proyecto
+  Params: id
+  Body: (campos)
+  Response:
+    - message: string
+
+GET /api/proyectos/:id/gastos
+  Descripción: Gastos del proyecto
+  Params: id
+  Response: Array<Gasto>
+  
+POST /api/proyectos/:id/gastos
+  Descripción: Registrar gasto
+  Params: id
+  Body:
+    - monto: number
+    - categoria: string
+    - concepto: string
+    - fecha: date
+  Response:
+    - id: string (UUID)
+
+GET /api/proyectos/:id/fases
+  Descripción: Fases del proyecto
+  Params: id
+  Response: Array<Fase>
+  
+POST /api/proyectos/:id/fases
+  Descripción: Crear fase
+  Params: id
+  Body:
+    - nombre: string
+    - orden: number
+  Response:
+    - id: string (UUID)
+
+${'='.repeat(80)}
+5. TAREAS API
+${'='.repeat(80)}
+Archivo: server/routes/tareas.routes.js
+
+GET /api/tareas
+  Descripción: Listar tareas
+  Response: Array<Tarea>
+  
+POST /api/tareas
+  Descripción: Crear tarea
+  Body:
+    - titulo: string
+    - descripcion: string
+    - prioridad: string (alta|media|baja)
+    - estatus: string (pendiente|en_progreso|completada)
+    - proyecto_id: string (UUID)
+    - asignado_id: string (UUID)
+  Response:
+    - id: string (UUID)
+
+GET /api/tareas/:id/archivos
+  Descripción: Archivos de tarea
+  Params: id
+  Response: Array<Archivo>
+  
+POST /api/tareas/:id/archivos
+  Descripción: Subir archivo
+  Params: id
+  Body: FormData
+  Response:
+    - id: string (UUID)
+
+GET /api/tareas/:id/dependencias
+  Descripción: Dependencias de tarea
+  Params: id
+  Response: Array<Dependencia>
+  
+POST /api/tareas/:id/dependencias
+  Descripción: Crear dependencia
+  Params: id
+  Body:
+    - depende_de_id: string (UUID)
+  Response:
+    - message: string
+
+${'='.repeat(80)}
+6. VENTAS API
+${'='.repeat(80)}
+Archivo: server/routes/ventas.routes.js
+
+GET /api/ventas
+  Descripción: Pipeline de ventas
+  Response: Array<Venta>
+  
+GET /api/ventas/:id
+  Descripción: Venta específica
+  Params: id
+  Response: Venta
+  
+POST /api/ventas
+  Descripción: Crear oportunidad de venta
+  Body:
+    - numero_venta: string
+    - cliente_id: string (UUID)
+    - monto_total: number
+    - estatus: string
+    - etapa: string (prospeccion|calificacion|propuesta|negociacion|cierre)
+    - probabilidad_cierre: number (0-100)
+  Response:
+    - id: string (UUID)
+    
+PUT /api/ventas/:id
+  Descripción: Actualizar venta
+  Params: id
+  Body: (campos)
+  Response:
+    - message: string
+
+${'='.repeat(80)}
+7. FINANZAS API
+${'='.repeat(80)}
+Archivo: server/routes/finanzas.routes.js
+
+GET /api/finanzas/summary
+  Descripción: Resumen financiero
+  Response:
+    - ingresos: number
+    - egresos: number
+    - balance: number
+    
+GET /api/finanzas/transactions
+  Descripción: Transacciones recientes
+  Response: Array<Transaccion>
+  
+POST /api/finanzas
+  Descripción: Registrar transacción
+  Body:
+    - tipo: string (ingreso|egreso)
+    - categoria: string
+    - monto: number
+    - concepto: string
+    - fecha: date
+  Response:
+    - id: string (UUID)
+
+GET /api/finanzas/recurrentes
+  Descripción: Gastos recurrentes
+  Response: Array<GastoRecurrente>
+  
+POST /api/finanzas/recurrentes
+  Descripción: Crear gasto recurrente
+  Body:
+    - concepto: string
+    - monto: number
+    - frecuencia: string (mensual|quincenal|semanal)
+    - dia_vencimiento: number
+    - categoria: string
+  Response:
+    - id: string (UUID)
+    
+DELETE /api/finanzas/recurrentes/:id
+  Descripción: Eliminar gasto recurrente
+  Params: id
+  Response:
+    - message: string
+
+${'='.repeat(80)}
+8. EQUIPO API
+${'='.repeat(80)}
+Archivo: server/routes/equipo.routes.js
+
+GET /api/equipo
+  Descripción: Listar miembros del equipo
+  Response: Array<Usuario>
+  
+POST /api/equipo
+  Descripción: Agregar miembro
+  Body:
+    - nombre: string
+    - apellido: string
+    - correo_corporativo: string
+    - telefono: string
+    - departamento: string
+    - puesto: string
+    - sueldo_base: number
+  Response:
+    - id: string (UUID)
+    
+PUT /api/equipo/:id
+  Descripción: Actualizar miembro
+  Params: id
+  Body: (campos)
+  Response:
+    - message: string
+
+${'='.repeat(80)}
+9. COTIZACIONES API
+${'='.repeat(80)}
+Archivo: server/routes/cotizaciones.routes.js
+
+GET /api/cotizaciones
+  Descripción: Listar cotizaciones
+  Response: Array<Cotizacion>
+  
+GET /api/cotizaciones/:id
+  Descripción: Cotización específica
+  Params: id
+  Response:
+    - cotizacion: Cotizacion
+    - items: Array<Item>
+    
+POST /api/cotizaciones
+  Descripción: Crear cotización
+  Body:
+    - folio: string
+    - cliente_id: string (UUID)
+    - fecha: date
+    - vencimiento: date
+    - items: Array<{descripcion, cantidad, precio_unitario}>
+    - notas: string
+  Response:
+    - id: string (UUID)
+    
+PUT /api/cotizaciones/:id/status
+  Descripción: Cambiar estado
+  Params: id
+  Body:
+    - estado: string (borrador|enviada|aceptada|rechazada)
+  Response:
+    - message: string
+    
+POST /api/cotizaciones/:id/convert
+  Descripción: Convertir a venta
+  Params: id
+  Response:
+    - ventaId: string (UUID)
+    - message: string
+
+${'='.repeat(80)}
+10. OTROS ENDPOINTS
+${'='.repeat(80)}
+
+COMUNIDAD:
+  GET /api/community/avisos
+  POST /api/community/avisos
+
+CONFIGURACIÓN:
+  GET /api/config
+  POST /api/config
+  POST /api/config/bulk
+
+SERVICIOS:
+  GET /api/servicios
+  POST /api/servicios
+
+RECORDATORIOS:
+  GET /api/recordatorios
+  POST /api/recordatorios
+  PUT /api/recordatorios/:id
+  DELETE /api/recordatorios/:id
+
+${'='.repeat(80)}
+NOTAS DE SEGURIDAD
+${'='.repeat(80)}
+
+✅ Todos los endpoints usan prepared statements
+✅ Rate limiting en /api/nebula/*
+✅ UUIDs para IDs (no secuenciales)
+⚠️ Falta autenticación JWT
+⚠️ Falta validación exhaustiva de inputs
+⚠️ Falta autorización por roles

@@ -1,0 +1,45 @@
+ARCHIVO: server\routes\tareas-archivos.routes.js
+================================================================================
+
+const express = require('express');
+const router = express.Router();
+const db = require('../db');
+const upload = require('../upload');
+const { v4: uuidv4 } = require('uuid');
+
+// Obtener archivos de una tarea
+router.get('/:tarea_id/archivos', (req, res) => {
+    const { tarea_id } = req.params;
+    db.all('SELECT * FROM tareas_archivos WHERE tarea_id = ? ORDER BY fecha_subida DESC', [tarea_id], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows);
+    });
+});
+
+// Subir archivo a una tarea
+router.post('/:tarea_id/archivos', upload.single('file'), (req, res) => {
+    const { tarea_id } = req.params;
+    if (!req.file) return res.status(400).json({ error: 'No se subió ningún archivo' });
+
+    const id = uuidv4();
+    const { originalname, mimetype, size } = req.file;
+    const url = `/uploads/${req.file.filename}`;
+
+    const query = `INSERT INTO tareas_archivos (id, tarea_id, nombre, url, tipo, tamano) VALUES (?, ?, ?, ?, ?, ?)`;
+
+    db.run(query, [id, tarea_id, originalname, url, mimetype, size], function (err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.status(201).json({ id, url, message: 'Archivo subido con éxito' });
+    });
+});
+
+// Eliminar archivo de tarea
+router.delete('/:tarea_id/archivos/:archivo_id', (req, res) => {
+    const { archivo_id } = req.params;
+    db.run('DELETE FROM tareas_archivos WHERE id = ?', [archivo_id], function (err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ message: 'Archivo eliminado' });
+    });
+});
+
+module.exports = router;

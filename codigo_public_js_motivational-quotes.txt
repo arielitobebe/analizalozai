@@ -1,0 +1,1551 @@
+ARCHIVO: public\js\motivational-quotes.js
+================================================================================
+
+const MotivationalQuotes = {
+    quotes: [
+        {
+            text: "El éxito no es el final, el fracaso no es fatal: lo que cuenta es el coraje para continuar.",
+            category: "Éxito Profesional",
+            icon: "fa-trophy",
+            explanation: "Esta frase de Winston Churchill nos recuerda que tanto la victoria como la derrota son estados temporales en el camino hacia algo más grande.",
+            howToApply: "En la agencia, si perdemos un cliente o una propuesta, analicémoslo, aprendamos y sigamos adelante con más fuerza sin perder el entusiasmo."
+        },
+        {
+            text: "La creatividad es la inteligencia divirtiéndose.",
+            category: "Creatividad",
+            icon: "fa-palette",
+            explanation: "Albert Einstein vincula el intelecto con el juego. Cuando disfrutamos del proceso creativo, nuestra capacidad de resolución aumenta.",
+            howToApply: "No busques la solución perfecta de inmediato. Juega con ideas locas para el diseño o la estrategia del cliente y verás cómo surge la genialidad."
+        },
+        {
+            text: "No tengas miedo a prospectar; el 'no' ya lo tienes, ve por el 'sí'.",
+            category: "Prospección",
+            icon: "fa-phone-volume",
+            explanation: "Muchos temen el rechazo, pero en ventas, el estado base es la ausencia de venta. No prospectar garantiza un 0%.",
+            howToApply: "Dedica la primera hora del día a llamadas o correos en frío. Cada rechazo te acerca estadísticamente más a tu próximo cliente ideal."
+        },
+        {
+            text: "La mejor forma de predecir el futuro es creándolo.",
+            category: "Liderazgo",
+            icon: "fa-rocket",
+            explanation: "Peter Drucker enfatiza la proactividad sobre la reactividad. No esperes a que el mercado cambie, cámbialo tú.",
+            howToApply: "Sé proactivo con los proyectos. Propón mejoras antes de que el cliente las pida. Toma el control de la dirección de tu carrera."
+        },
+        {
+            text: "Pequeños pasos todos los días llevan a grandes resultados.",
+            category: "Motivación Personal",
+            icon: "fa-person-walking",
+            explanation: "La constancia supera a la intensidad esporádica. El interés compuesto del esfuerzo diario es masivo.",
+            howToApply: "Si tienes una tarea enorme, divídela en micro-tareas para hoy. Completar esas pequeñas piezas mantiene el momentum de la agencia alto."
+        },
+        {
+            text: "Tu actitud, no tu aptitud, determinará tu altitud.",
+            category: "Mentalidad",
+            icon: "fa-mountain",
+            explanation: "Zig Ziglar resalta que el conocimiento técnico es secundario frente a la disposición mental con la que enfrentas los retos.",
+            howToApply: "Un problema en un proyecto es una oportunidad para demostrar servicio al cliente. Mantén una sonrisa incluso bajo presión."
+        },
+        {
+            text: "La simplicidad es la máxima sofisticación.",
+            category: "Creatividad",
+            icon: "fa-sparkles",
+            explanation: "Leonardo da Vinci nos enseña que menos es más. Lo complejo suele ser una falta de claridad.",
+            howToApply: "Revisa tus diseños y procesos. ¿Qué puedes quitar para que el mensaje sea más potente y directo para el cliente?"
+        },
+        {
+            text: "Vende el problema que resuelves, no el producto que tienes.",
+            category: "Ventas",
+            icon: "fa-handshake",
+            explanation: "A los clientes no les importa tu tecnología, les importa cómo su vida o negocio será mejor después de contratarte.",
+            howToApply: "En tus presentaciones, enfócate en el dolor del cliente y cómo nuestra agencia lo elimina por completo."
+        },
+        {
+            text: "La disciplina es hacer lo que hay que hacer, incluso cuando no tienes ganas.",
+            category: "Motivación Personal",
+            icon: "fa-battery-full",
+            explanation: "La motivación te pone en marcha, pero la disciplina te mantiene en el camino cuando el entusiasmo desaparece.",
+            howToApply: "Establece horarios estrictos para tareas críticas. No dependas de 'sentirte inspirado' para cumplir con las entregas de los clientes."
+        },
+        {
+            text: "Innovar es ver lo que todos han visto y pensar lo que nadie ha pensado.",
+            category: "Creatividad",
+            icon: "fa-lightbulb",
+            explanation: "La innovación no siempre es crear algo nuevo, sino observar lo existente con una perspectiva diferente.",
+            howToApply: "Analiza la competencia de nuestros clientes. ¿Qué están ignorando ellos que nosotros podemos aprovechar para destacar?"
+        },
+        {
+            text: "El cliente no siempre tiene la razón, pero siempre es el cliente.",
+            category: "Agencia",
+            icon: "fa-users",
+            explanation: "Nuestra labor es guiar al cliente profesionalmente, manteniendo el respeto y la calidad del servicio incluso en desacuerdos.",
+            howToApply: "Usa datos y lógica para educar al cliente si su idea es errónea, pero hazlo siempre validando su perspectiva comercial."
+        },
+        {
+            text: "Donde hay una empresa de éxito, alguien tomó alguna vez una decisión valiente.",
+            category: "Éxito Profesional",
+            icon: "fa-gavel",
+            explanation: "El crecimiento requiere riesgo calculado. El estancamiento es el resultado de la indecisión.",
+            howToApply: "¿Hay un nuevo servicio o tecnología que nos da miedo adoptar? Si los datos dicen que es el futuro, tomemos la decisión hoy."
+        },
+        {
+            text: "Hazlo con pasión o no lo hagas.",
+            category: "Motivación Personal",
+            icon: "fa-heart",
+            explanation: "La falta de compromiso se nota en el resultado final. El trabajo excepcional viene del alma.",
+            howToApply: "Pon un 'toque extra' en cada entrega. Que el cliente sienta que nos importa su éxito tanto como a él mismo."
+        },
+        {
+            text: "Los líderes no crean seguidores, crean más líderes.",
+            category: "Liderazgo",
+            icon: "fa-user-group",
+            explanation: "El liderazgo verdadero se basa en el empoderamiento de los demás, no en el control.",
+            howToApply: "Si eres jefe de proyecto, delega responsabilidades reales y permite que tu equipo tome decisiones importantes."
+        },
+        {
+            text: "La curiosidad es el motor del aprendizaje.",
+            category: "Mentalidad",
+            icon: "fa-compass",
+            explanation: "Nunca dejes de preguntar '¿Por qué?'. El día que dejas de ser curioso, dejas de crecer.",
+            howToApply: "Investiga nuevas tendencias de marketing digital cada semana. Mantenernos a la vanguardia es nuestra mayor ventaja."
+        },
+        {
+            text: "No cuentes los días, haz que los días cuenten.",
+            category: "Motivación Personal",
+            icon: "fa-hourglass-start",
+            explanation: "Muhammad Ali nos recuerda que el tiempo es limitado. El valor está en la calidad de nuestras acciones diarias.",
+            howToApply: "Al final del día, pregúntate: ¿Qué valor real aporté hoy a la agencia y a nuestros clientes?"
+        },
+        {
+            text: "Un objetivo sin un plan es solo un deseo.",
+            category: "Éxito Profesional",
+            icon: "fa-map",
+            explanation: "La visión es necesaria, pero la ejecución requiere pasos concretos y medibles.",
+            howToApply: "Asegúrate de que cada proyecto en el CRM tenga tareas claras, fechas de entrega y responsables definidos."
+        },
+        {
+            text: "La confianza se gana con mil actos y se pierde con uno solo.",
+            category: "Agencia",
+            icon: "fa-shield-halved",
+            explanation: "La reputación es el activo más valioso de nuestra agencia. Se construye con consistencia impecable.",
+            howToApply: "Cumple siempre con los plazos. Si surge un retraso, comunícalo antes de que el cliente lo note. La transparencia genera confianza."
+        },
+        {
+            text: "Si crees que puedes o crees que no puedes, en ambos casos tienes razón.",
+            category: "Mentalidad",
+            icon: "fa-brain",
+            explanation: "Henry Ford destaca el poder de la profecía autocumplida. Nuestra mente dicta nuestros límites.",
+            howToApply: "Enfrenta los nuevos retos de desarrollo o diseño con la mentalidad de 'voy a descubrir cómo hacerlo', no de 'esto es imposible'."
+        },
+        {
+            text: "La mejor publicidad es la que hacen los clientes satisfechos.",
+            category: "Ventas",
+            icon: "fa-comment-dots",
+            explanation: "El marketing de boca a boca es el más potente. El éxito del cliente es nuestro mejor vendedor.",
+            howToApply: "Pide testimonios y casos de éxito cada vez que cerremos un proyecto con excelentes resultados."
+        },
+        {
+            text: "No busques clientes para tus productos, busca productos para tus clientes.",
+            category: "Ventas",
+            icon: "fa-magnifying-glass-chart",
+            explanation: "Seth Godin nos enseña a centrarnos en las necesidades reales del mercado en lugar de intentar forzar una venta.",
+            howToApply: "Escucha activamente en las reuniones de descubrimiento. Si el cliente necesita algo que no ofrecemos, recomiéndaselo o busca cómo implementarlo."
+        },
+        {
+            text: "La innovación distingue a los líderes de los seguidores.",
+            category: "Liderazgo",
+            icon: "fa-lightbulb",
+            explanation: "Steve Jobs resaltaba que el liderazgo real implica romper moldes y no solo seguir tendencias.",
+            howToApply: "¿Qué proceso de la agencia es 'tradicional'? Intentemos automatizarlo o darle un giro creativo esta semana."
+        },
+        {
+            text: "Tus clientes más descontentos son tu mayor fuente de aprendizaje.",
+            category: "Agencia",
+            icon: "fa-face-frown-open",
+            explanation: "Las críticas son auditorías gratuitas. Nos dicen exactamente dónde fallamos y cómo podemos ser mejores.",
+            howToApply: "Si un cliente se queja, no te defiendas. Escucha, documenta el fallo y crea un proceso para que no vuelva a suceder jamás."
+        },
+        {
+            text: "Creatividad es permitirte cometer errores. Arte es saber cuáles conservar.",
+            category: "Creatividad",
+            icon: "fa-paintbrush",
+            explanation: "Scott Adams desmitifica la creatividad como algo perfecto. Es un proceso de filtrado de ideas.",
+            howToApply: "En el siguiente brainstorming, no juzgues ninguna idea. Anótalas todas y luego filtremos las que tienen potencial real."
+        },
+        {
+            text: "El entusiasmo es el motor de la ejecución.",
+            category: "Motivación Personal",
+            icon: "fa-fire",
+            explanation: "Hacer las cosas con energía cambia la percepción del resultado. La gente compra tu emoción antes que tu lógica.",
+            howToApply: "Transmite pasión en los correos y presentaciones. Un 'Estamos emocionados por este proyecto' auténtico vale más que mil datos."
+        },
+        {
+            text: "No es por lo que eres que te detienes, es por lo que crees que no eres.",
+            category: "Mentalidad",
+            icon: "fa-ban",
+            explanation: "El síndrome del impostor es el mayor freno para el talento en una agencia creativa.",
+            howToApply: "Confía en tus habilidades. Si estás en este equipo es porque tienes el talento. Enfrenta ese proyecto difícil con seguridad."
+        },
+        {
+            text: "La excelencia no es un acto, sino un hábito.",
+            category: "Éxito Profesional",
+            icon: "fa-medal",
+            explanation: "Aristóteles nos dice que somos lo que hacemos repetidamente. La calidad debe ser constante.",
+            howToApply: "Revisa cada detalle, desde el nombre de una capa en diseño hasta el punto final en un correo. La suma de detalles es la excelencia."
+        },
+        {
+            text: "El precio es lo que pagas, el valor es lo que recibes.",
+            category: "Ventas",
+            icon: "fa-gem",
+            explanation: "Warren Buffett distingue entre costo y beneficio. Nuestra agencia debe ser vista como una inversión rentable.",
+            howToApply: "Cuando hablemos de costos con el cliente, mostremos el Retorno de Inversión (ROI) estimado. El precio pasará a segundo plano."
+        },
+        {
+            text: "En medio de la dificultad reside la oportunidad.",
+            category: "Mentalidad",
+            icon: "fa-door-open",
+            explanation: "Albert Einstein nos anima a ver los problemas como puertas hacia nuevas soluciones.",
+            howToApply: "¿Un cliente recortó presupuesto? Es la oportunidad de crear una estrategia más eficiente y creativa con menos recursos."
+        },
+        {
+            text: "Si quieres ir rápido, ve solo. Si quieres ir lejos, ve acompañado.",
+            category: "Liderazgo",
+            icon: "fa-people-group",
+            explanation: "El trabajo en equipo permite alcanzar metas imposibles para un individuo solitario.",
+            howToApply: "No intentes resolver todo tú solo. Apóyate en tus compañeros; la sinergia de talentos en NOVADEX es nuestra fuerza."
+        },
+        {
+            text: "El fracaso es simplemente la oportunidad de comenzar de nuevo, esta vez de forma más inteligente.",
+            category: "Éxito Profesional",
+            icon: "fa-brain",
+            explanation: "Henry Ford veía el error como un paso necesario en el proceso de optimización.",
+            howToApply: "Si una campaña no funcionó, no es un desperdicio. Son datos valiosos que nos dicen qué camino NO tomar la próxima vez."
+        },
+        {
+            text: "La imaginación lo es todo. Es el avance de las próximas atracciones de la vida.",
+            category: "Creatividad",
+            icon: "fa-wand-magic-sparkles",
+            explanation: "Visualizar el éxito es el primer paso para materializarlo. Lo que imaginas hoy, lo construyes mañana.",
+            howToApply: "Toma 5 minutos al iniciar el día para visualizar el proyecto terminado y al cliente feliz. Eso guiará tu trabajo diario."
+        },
+        {
+            text: "Enfócate en ser productivo, no en estar ocupado.",
+            category: "Éxito Profesional",
+            icon: "fa-calendar-check",
+            explanation: "Tim Ferriss nos recuerda que llenar el día de tareas no significa estar avanzando en lo importante.",
+            howToApply: "Identifica las 3 tareas que realmente mueven la aguja hoy y hazlas primero. Ignora el 'ruido' administrativo hasta terminar."
+        },
+        {
+            text: "El coraje no es tener la fuerza para seguir adelante, es seguir adelante cuando no tienes fuerza.",
+            category: "Motivación Personal",
+            icon: "fa-bolt-lightning",
+            explanation: "La resiliencia extrema es lo que define a los emprendedores y creativos de éxito.",
+            howToApply: "En esos días de carga alta de trabajo, respira hondo y recuerda por qué empezamos este sueño. Un paso a la vez."
+        },
+        {
+            text: "La calidad de tu comunicación determina la calidad de tu vida.",
+            category: "Agencia",
+            icon: "fa-comments",
+            explanation: "Tony Robbins resalta la importancia de expresarnos con claridad y empatía, tanto interna como externamente.",
+            howToApply: "Sé claro en tus briefs y comunicaciones internas. Evitar malentendidos ahorra horas de trabajo y estrés innecesario."
+        },
+        {
+            text: "El riesgo más peligroso es no correr ninguno.",
+            category: "Liderazgo",
+            icon: "fa-triangle-exclamation",
+            explanation: "En un mundo que cambia rápido, la seguridad absoluta es la receta para la obsolescencia.",
+            howToApply: "Prueba esa nueva herramienta de IA o esa tendencia de diseño arriesgada. Mantenerse a salvo es el camino al olvido."
+        },
+        {
+            text: "Para ser irremplazable, uno siempre debe ser diferente.",
+            category: "Creatividad",
+            icon: "fa-dna",
+            explanation: "Coco Chanel destacaba la diferenciación como la clave del valor único.",
+            howToApply: "No copiemos lo que hacen otras agencias. Busquemos nuestra propia voz y estilo en cada entregable."
+        },
+        {
+            text: "No encuentres fallos, encuentra soluciones.",
+            category: "Agencia",
+            icon: "fa-screwdriver-wrench",
+            explanation: "Cualquiera puede quejarse. Solo los profesionales proponen cómo arreglar lo que se rompió.",
+            howToApply: "Si detectas un error en el código o diseño de un compañero, menciónalo junto con una sugerencia de cómo mejorarlo."
+        },
+        {
+            text: "Tu tiempo es limitado, así que no lo desperdicies viviendo la vida de alguien más.",
+            category: "Motivación Personal",
+            icon: "fa-clock",
+            explanation: "La autenticidad es tu mayor superpoder. No intentes encajar en moldes que no son tuyos.",
+            howToApply: "Aporta tu perspectiva única a los proyectos. Tu experiencia personal le da un valor que nadie más puede replicar."
+        },
+        {
+            text: "El que deja de aprender es viejo, ya tenga veinte u ochenta años.",
+            category: "Mentalidad",
+            icon: "fa-book-open",
+            explanation: "Mantener la mente joven requiere una búsqueda constante de conocimiento.",
+            howToApply: "Dedica un tiempo a la semana a leer un libro o ver un curso sobre tu área. Un equipo que aprende es un equipo imbatible."
+        },
+        {
+            text: "No juzgues cada día por lo que cosechas, sino por las semillas que plantas.",
+            category: "Éxito Profesional",
+            icon: "fa-leaf",
+            explanation: "El éxito a largo plazo se construye con acciones diarias cuyos resultados no siempre son inmediatos.",
+            howToApply: "Hoy prospectaste 20 personas y nadie compró. No es un mal día, plantaste 20 semillas que darán fruto mañana."
+        },
+        {
+            text: "La creatividad requiere tener el valor de desprenderse de las certezas.",
+            category: "Creatividad",
+            icon: "fa-anchor-circle-xmark",
+            explanation: "Erich Fromm nos invita a cuestionar lo 'obvio' para encontrar soluciones verdaderamente originales.",
+            howToApply: "Si siempre hacemos los logos de la misma forma, intentemos hoy una técnica que nunca hayamos usado. Rompe la zona de confort."
+        },
+        {
+            text: "Si no estás cometiendo errores, no estás innovando lo suficiente.",
+            category: "Liderazgo",
+            icon: "fa-vial",
+            explanation: "El miedo al error es el mayor enemigo del progreso técnico y creativo.",
+            howToApply: "Crea un entorno donde el equipo pueda probar nuevas funciones sin miedo a que algo se rompa (en entorno de pruebas)."
+        },
+        {
+            text: "Vendas lo que vendas, lo que realmente vendes es confianza.",
+            category: "Ventas",
+            icon: "fa-hand-holding-heart",
+            explanation: "Nadie contrata una agencia en la que no confía, por muy bueno que sea su portafolio.",
+            howToApply: "Construye autoridad compartiendo tus conocimientos de forma gratuita en la primera llamada. Que vean que sabemos de lo que hablamos."
+        },
+        {
+            text: "La motivación te ayuda a empezar. El hábito te mantiene en marcha.",
+            category: "Motivación Personal",
+            icon: "fa-repeat",
+            explanation: "Jim Ryun destaca que el éxito es el resultado de la disciplina diaria, no de chispazos de inspiración.",
+            howToApply: "Automatiza tus tareas repetitivas en el CRM para que el hábito de la organización sea inevitable y sin fricción."
+        },
+        {
+            text: "El cliente compra por sus razones, no por las tuyas.",
+            category: "Ventas",
+            icon: "fa-ear-listen",
+            explanation: "Deja de hablar de NOVADEX y empieza a preguntar por los problemas de SU negocio.",
+            howToApply: "Aplica la regla 80/20 en ventas: escucha el 80% del tiempo y habla solo el 20% para proponer la solución exacta."
+        },
+        {
+            text: "Un barco está más seguro en el puerto, pero para eso no se construyeron los barcos.",
+            category: "Mentalidad",
+            icon: "fa-ship",
+            explanation: "El propósito de nuestro talento es ser puesto a prueba en los retos más difíciles de los clientes.",
+            howToApply: "No huyas de los proyectos complejos. Son los que nos dan el prestigio y las lecciones que nos hacen grandes."
+        },
+        {
+            text: "Lo que se mide, se gestiona.",
+            category: "Liderazgo",
+            icon: "fa-chart-simple",
+            explanation: "Peter Drucker resalta que sin datos, solo estamos adivinando. La optimización requiere métricas.",
+            howToApply: "Usa las gráficas de finanzas y leads del CRM para tomar decisiones basadas en hechos, no en intuiciones."
+        },
+        {
+            text: "La creatividad no es un talento, es una forma de operar.",
+            category: "Creatividad",
+            icon: "fa-gears",
+            explanation: "John Cleese defiende que ser creativo es simplemente darse el tiempo y el espacio mental para jugar.",
+            howToApply: "Bloquea una hora de 'no interrupciones' al día. Sin Slack, sin correos. Solo tú y el proyecto creativo del momento."
+        },
+        // --- 🧬 CATEGORÍA: ADN NOVA (50 Frases) ---
+        {
+            text: "En Nova no predecimos el futuro, lo programamos.",
+            category: "ADN Nova",
+            icon: "fa-microchip",
+            explanation: "Somos arquitectos digitales. No esperamos a ver qué pasa con la tecnología, nosotros la implementamos.",
+            howToApply: "Usa nuestras herramientas de IA hoy para automatizar esa tarea repetitiva y dedica el tiempo ganado a crear."
+        },
+        {
+            text: "Tu sitio web no es un gasto, es tu mejor vendedor 24/7.",
+            category: "ADN Nova",
+            icon: "fa-globe",
+            explanation: "Una web de Nova no duerme, no pide vacaciones y siempre presenta tu mejor cara al mundo.",
+            howToApply: "Recuérdale al cliente que cada minuto que su web está caída o desactualizada, está perdiendo dinero."
+        },
+        {
+            text: "La Inteligencia Artificial no te va a reemplazar, te va a reemplazar alguien que use IA.",
+            category: "ADN Nova",
+            icon: "fa-robot",
+            explanation: "La herramienta es neutra; la ventaja competitiva es para quien la adopta primero y mejor.",
+            howToApply: "Integra ChatGPT o nuestros bots en tu flujo de trabajo diario para reducir tiempos de redacción a la mitad."
+        },
+        {
+            text: "No vendemos servicios, vendemos crecimiento exponencial.",
+            category: "ADN Nova",
+            icon: "fa-chart-line",
+            explanation: "El cliente no quiere SEO, quiere ventas. No quiere diseño, quiere identidad.",
+            howToApply: "Enfoca cada reporte mensual en cómo hemos hecho crecer el negocio del cliente, no solo en las tareas realizadas."
+        },
+        {
+            text: "El diseño es el embajador silencioso de tu marca.",
+            category: "ADN Nova",
+            icon: "fa-pen-nib",
+            explanation: "Antes de que el cliente lea una palabra, ya ha juzgado tu empresa por sus colores y formas.",
+            howToApply: "Asegúrate de que cada gráfico que entregues, por pequeño que sea, respire la calidad premium de Nova."
+        },
+        {
+            text: "Automatizar es liberar talento humano para lo que realmente importa.",
+            category: "ADN Nova",
+            icon: "fa-gears",
+            explanation: "Las tareas mecánicas son para los bots. La creatividad y la empatía son para el equipo Nova.",
+            howToApply: "Si haces lo mismo más de tres veces al día, busca cómo automatizarlo con nuestras herramientas internas."
+        },
+        {
+            text: "La velocidad es la nueva moneda del marketing digital.",
+            category: "ADN Nova",
+            icon: "fa-bolt",
+            explanation: "El mercado no espera. Quien responde primero al lead, generalmente se queda con la venta.",
+            howToApply: "Responde a las solicitudes de los clientes en tiempo récord. La agilidad nos diferencia de las agencias burocráticas."
+        },
+        {
+            text: "Los datos matan a la opinión.",
+            category: "ADN Nova",
+            icon: "fa-database",
+            explanation: "En Nova no suponemos, medimos. Las decisiones basadas en data son irrefutables.",
+            howToApply: "Cuando propongas un cambio de estrategia, trae los números del CRM que lo justifiquen."
+        },
+        {
+            text: "El contenido es el rey, pero la distribución es la reina.",
+            category: "ADN Nova",
+            icon: "fa-share-nodes",
+            explanation: "De nada sirve el mejor video si nadie lo ve. La estrategia de difusión es vital.",
+            howToApply: "No solo crees el post, planea obsesivamente en qué canales y horarios tendrá el máximo impacto."
+        },
+        {
+            text: "Una marca sin historia es solo un logotipo.",
+            category: "ADN Nova",
+            icon: "fa-book-open-reader",
+            explanation: "La gente conecta con narrativas, no con vectores. Nova construye historias.",
+            howToApply: "En cada proyecto de branding, busca el 'por qué' del cliente y conviértelo en una leyenda."
+        },
+        {
+            text: "SEO es la paciencia pagando dividendos compuestos.",
+            category: "ADN Nova",
+            icon: "fa-magnifying-glass-dollar",
+            explanation: "El posicionamiento orgánico tarda en llegar, pero una vez ahí, es tráfico gratuito perpetuo.",
+            howToApply: "Educa al cliente sobre el largo plazo. Vende la visión de dominar Google en 6 meses, no mañana."
+        },
+        {
+            text: "La interfaz (UI) es como un chiste; si tienes que explicarla, no es buena.",
+            category: "ADN Nova",
+            icon: "fa-mobile-screen",
+            explanation: "La usabilidad debe ser intuitiva. El usuario no debería necesitar un manual.",
+            howToApply: "Haz pruebas de usuario con personas ajenas al proyecto. Si se traban, rediseña."
+        },
+        {
+            text: "El marketing sin conversión es solo arte decorativo.",
+            category: "ADN Nova",
+            icon: "fa-filter-circle-dollar",
+            explanation: "Todo esfuerzo creativo en Nova tiene un fin comercial medible.",
+            howToApply: "Siempre incluye un Call to Action (CTA) claro y potente en cada pieza de comunicación."
+        },
+        {
+            text: "Somos la intersección entre arte y algoritmo.",
+            category: "ADN Nova",
+            icon: "fa-bezier-curve",
+            explanation: "Nova vive donde la belleza visual se encuentra con la precisión matemática del código.",
+            howToApply: "Busca el equilibrio. Que tu código sea limpio como un diseño, y tu diseño funcional como un código."
+        },
+        {
+            text: "En digital, lo que funcionaba hace 6 meses es prehistoria.",
+            category: "ADN Nova",
+            icon: "fa-clock-rotate-left",
+            explanation: "La adaptabilidad es nuestra supervivencia. Estudiar es parte del trabajo.",
+            howToApply: "Dedica 30 minutos los viernes a leer sobre la última actualización de algoritmos o herramientas."
+        },
+        {
+            text: "Un lead no es una venta, es una oportunidad de servicio.",
+            category: "ADN Nova",
+            icon: "fa-hand-holding-seedling",
+            explanation: "Tratar al lead como un número lo enfría. Tratarlo como persona lo convierte.",
+            howToApply: "Personaliza el primer contacto. Menciona algo específico de su negocio para mostrar interés real."
+        },
+        {
+            text: "La lealtad del cliente vale 10 veces más que una venta única.",
+            category: "ADN Nova",
+            icon: "fa-infinity",
+            explanation: "El Lifetime Value (LTV) es el métrico rey. Queremos relaciones de años.",
+            howToApply: "Sorprende a los clientes antiguos con un 'plus' inesperado en su servicio mensual."
+        },
+        {
+            text: "Creamos experiencias, no solo pantallas.",
+            category: "ADN Nova",
+            icon: "fa-vr-cardboard",
+            explanation: "El usuario debe sentir, no solo ver. La interacción debe ser memorable.",
+            howToApply: "Añade micro-interacciones y animaciones sutiles que hagan sentir la web 'viva'."
+        },
+        {
+            text: "El código limpio es poesía para las máquinas.",
+            category: "ADN Nova",
+            icon: "fa-code",
+            explanation: "La calidad interna del desarrollo asegura escalabilidad y menos bugs.",
+            howToApply: "Comenta tu código y refactoriza. Piensa en el compañero que heredará tu proyecto."
+        },
+        {
+            text: "La mejor tecnología es la que se vuelve invisible.",
+            category: "ADN Nova",
+            icon: "fa-ghost",
+            explanation: "Si el usuario nota la tecnología, algo falla. La magia debe fluir sin fricción.",
+            howToApply: "Optimiza los tiempos de carga. La espera rompe la inmersión."
+        },
+        {
+            text: "No compitas por precio, compite por valor.",
+            category: "ADN Nova",
+            icon: "fa-diamond",
+            explanation: "Siempre habrá alguien más barato. Nadie debe ser mejor que Nova.",
+            howToApply: "Justifica cada centavo del presupuesto con valor tangible y calidad superior."
+        },
+        {
+            text: "El ROI es el único idioma que hablan los directivos.",
+            category: "ADN Nova",
+            icon: "fa-sack-dollar",
+            explanation: "Traduce likes y visitas a dinero. Eso es lo que renueva contratos.",
+            howToApply: "En las reuniones, empieza hablando de cuánto dinero les hemos ayudado a generar o ahorrar."
+        },
+        {
+            text: "La simplicidad escala, la complejidad colapsa.",
+            category: "ADN Nova",
+            icon: "fa-layer-group",
+            explanation: "Sistemas simples son robustos. Sistemas complejos son frágiles.",
+            howToApply: "Busca la solución más sencilla posible para el problema del cliente. Menos partes móviles, menos fallas."
+        },
+        {
+            text: "Nuestra oficina es el mundo, nuestra meta es el universo.",
+            category: "ADN Nova",
+            icon: "fa-earth-americas",
+            explanation: "La mentalidad global nos permite servir clientes en cualquier latitud con la misma excelencia.",
+            howToApply: "Mantén estándares internacionales en tu trabajo. Compárate con agencias de NY o Londres, no locales."
+        },
+        {
+            text: "Escucha lo que el cliente no dice.",
+            category: "ADN Nova",
+            icon: "fa-ear-deaf",
+            explanation: "A veces el problema real está oculto tras la queja superficial.",
+            howToApply: "Pregunta '¿Por qué?' tres veces para llegar a la raíz del dolor del cliente."
+        },
+        {
+            text: "El branding es lo que dicen de ti cuando no estás en la sala.",
+            category: "ADN Nova",
+            icon: "fa-comments-dollar",
+            explanation: "Jeff Bezos lo definió mejor. Construimos reputación, no solo imagen.",
+            howToApply: "Asegúrate de que cada entregable hable bien de Nova incluso sin que tú lo presentes."
+        },
+        {
+            text: "Google solo ama a quien ama al usuario primero.",
+            category: "ADN Nova",
+            icon: "fa-google",
+            explanation: "No escribas para el bot, escribe para la persona. El bot seguirá a la gente.",
+            howToApply: "Prioriza la legibilidad y la utilidad del contenido sobre el keyword stuffing."
+        },
+        {
+            text: "La adaptabilidad vence a la fuerza.",
+            category: "ADN Nova",
+            icon: "fa-water",
+            explanation: "En tecnología, el rígido se rompe. El flexible sobrevive.",
+            howToApply: "Si una herramienta deja de funcionar o cambia, adáptate rápido sin quejarte. Busca la solución alterna ya."
+        },
+        {
+            text: "Cada píxel cuenta, cada milisegundo importa.",
+            category: "ADN Nova",
+            icon: "fa-ruler-combined",
+            explanation: "La obsesión por el detalle es el sello de Nova.",
+            howToApply: "Revisa alineaciones y tiempos de carga antes de enviar. La excelencia está en los márgenes."
+        },
+        {
+            text: "El software se come al mundo, nosotros cocinamos.",
+            category: "ADN Nova",
+            icon: "fa-kitchen-set",
+            explanation: "Somos los creadores activos de la revolución digital.",
+            howToApply: "Siéntete orgulloso de ser un 'chef' digital. Lo que creas alimenta negocios enteros."
+        },
+        {
+            text: "No busques culpables, busca el fallo en el proceso.",
+            category: "ADN Nova",
+            icon: "fa-clipboard-check",
+            explanation: "Las personas fallan, los sistemas previenen. Mejora el sistema.",
+            howToApply: "Si hubo un error, actualiza el checklist o el protocolo para blindar el proceso."
+        },
+        {
+            text: "La curiosidad es el I+D de Nova.",
+            category: "ADN Nova",
+            icon: "fa-microscope",
+            explanation: "Investigar por diversión hoy es la solución rentable de mañana.",
+            howToApply: "Comparte en el grupo esa herramienta loca que encontraste. Podría ser nuestro próximo producto estrella."
+        },
+        {
+            text: "Vendemos confianza empaquetada en tecnología.",
+            category: "ADN Nova",
+            icon: "fa-box-open",
+            explanation: "El código es el medio, la tranquilidad del cliente es el fin.",
+            howToApply: "Comunica seguridad. 'Ya está resuelto', 'Lo tengo bajo control', son frases mágicas."
+        },
+        {
+            text: "Si no está en el CRM, no existe.",
+            category: "ADN Nova",
+            icon: "fa-server",
+            explanation: "La memoria humana falla, la base de datos no. Documenta todo.",
+            howToApply: "Registra cada llamada, cada acuerdo y cada tarea. Es tu seguro de vida profesional."
+        },
+        {
+            text: "El diseño no es cómo se ve, es cómo funciona.",
+            category: "ADN Nova",
+            icon: "fa-gear",
+            explanation: "Steve Jobs nos enseñó que la estética sin función es basura.",
+            howToApply: "Prioriza la navegación clara sobre los adornos innecesarios."
+        },
+        {
+            text: "Somos traductores: de Binario a Humano.",
+            category: "ADN Nova",
+            icon: "fa-language",
+            explanation: "Nuestra misión es hacer la tecnología accesible y comprensible.",
+            howToApply: "Evita tecnicismos con el cliente. Explica 'API' como 'un puente entre dos programas'."
+        },
+        {
+            text: "El éxito del cliente es nuestro sueldo.",
+            category: "ADN Nova",
+            icon: "fa-money-bill-wave",
+            explanation: "Literalmente. Sin clientes exitosos, no hay agencia.",
+            howToApply: "Toma el negocio del cliente como propio. Si a él le va bien, a nosotros nos va mejor."
+        },
+        {
+            text: "La innovación pide perdón, no permiso.",
+            category: "ADN Nova",
+            icon: "fa-user-astronaut",
+            explanation: "Atrévete a proponer ideas disruptivas. Lo peor que puede pasar es volver al plan A.",
+            howToApply: "Presenta siempre una opción 'segura' y una 'arriesgada/innovadora' al cliente."
+        },
+        {
+            text: "Mobile First no es una opción, es la ley.",
+            category: "ADN Nova",
+            icon: "fa-mobile",
+            explanation: "La mayoría del mundo ve internet en 6 pulgadas.",
+            howToApply: "Diseña y prueba primero en celular. El escritorio es secundario."
+        },
+        {
+            text: "Crea contenido que la gente quiera guardar.",
+            category: "ADN Nova",
+            icon: "fa-bookmark",
+            explanation: "El valor real se mide en 'guardados' y 'compartidos', no solo likes.",
+            howToApply: "Haz guías, tips y recursos útiles. Sé generoso con el conocimiento."
+        },
+        {
+            text: "La transparencia genera autoridad.",
+            category: "ADN Nova",
+            icon: "fa-glasses",
+            explanation: "No ocultes trucos. Explica cómo lo haces y te verán como experto.",
+            howToApply: "Muestra al cliente el 'detrás de cámaras' de su campaña. Educarlo fideliza."
+        },
+        {
+            text: "Un bug encontrado antes del cliente es un trofeo.",
+            category: "ADN Nova",
+            icon: "fa-bug-slash",
+            explanation: "El control de calidad (QA) es nuestra red de seguridad.",
+            howToApply: "Revisa tu trabajo tres veces. Encuentra el error tú para que no lo encuentre quien paga."
+        },
+        {
+            text: "La analítica es el mapa del tesoro.",
+            category: "ADN Nova",
+            icon: "fa-map-location-dot",
+            explanation: "Los datos nos dicen dónde está el oro (las ventas).",
+            howToApply: "No lances campañas a ciegas. Define KPIs claros antes de empezar."
+        },
+        {
+            text: "Nova es inteligencia, pero también es corazón.",
+            category: "ADN Nova",
+            icon: "fa-heart-pulse",
+            explanation: "La tecnología fría necesita calidez humana para conectar.",
+            howToApply: "Felicita al cliente en su cumpleaños. Sé humano en el trato diario."
+        },
+        {
+            text: "No construimos webs, construimos negocios digitales.",
+            category: "ADN Nova",
+            icon: "fa-building-columns",
+            explanation: "La visión holística es lo que nos hace consultores, no solo técnicos.",
+            howToApply: "Asesora sobre modelo de negocio, no solo sobre colores o botones."
+        },
+        {
+            text: "La consistencia vence a la viralidad.",
+            category: "ADN Nova",
+            icon: "fa-stairs",
+            explanation: "Un hit viral pasa. Una marca consistente perdura.",
+            howToApply: "Mantén la calidad y el ritmo de publicación constante. Es una maratón, no un sprint."
+        },
+        {
+            text: "Solucionamos problemas que el cliente aún no sabe que tiene.",
+            category: "ADN Nova",
+            icon: "fa-crystal-ball",
+            explanation: "La anticipación es el servicio premium definitivo.",
+            howToApply: "Detecta cuellos de botella en el proceso del cliente y propón la solución antes de que colapsen."
+        },
+        {
+            text: "En Nova, 'Imposible' solo significa 'no se ha programado aún'.",
+            category: "ADN Nova",
+            icon: "fa-terminal",
+            explanation: "Nuestra actitud ante el reto técnico es siempre 'vamos a averiguar cómo'.",
+            howToApply: "Nunca digas 'no se puede' de entrada. Di 'dejame investigar la mejor forma de hacerlo'."
+        },
+        {
+            text: "Tu voz es el código fuente de tu liderazgo.",
+            category: "ADN Nova",
+            icon: "fa-microphone-lines",
+            explanation: "Cómo comunicas define cómo te siguen.",
+            howToApply: "Sé claro, directo y amable. La comunicación asertiva acelera proyectos."
+        },
+        {
+            text: "Bienvenido al futuro de la inteligencia digital.",
+            category: "ADN Nova",
+            icon: "fa-robot",
+            explanation: "El mantra de Nova. Estamos construyendo el mañana hoy.",
+            howToApply: "Siéntete parte de la élite digital. Estás en el lugar correcto."
+        },
+        // --- ❤️ CATEGORÍA: LADO HUMANO (30 Frases) ---
+        {
+            text: "Tu trabajo es una bola de goma, tu familia es una bola de cristal.",
+            category: "Lado Humano",
+            icon: "fa-hands-holding-child",
+            explanation: "Si el trabajo se cae, rebota. Si la familia se cae, se rompe y no vuelve a ser igual.",
+            howToApply: "Cuando cierres la laptop hoy, ciérrala de verdad. Tu presencia plena en casa recarga la energía que necesitas aquí."
+        },
+        {
+            text: "No eres un 'recurso humano', eres un ser humano con recursos.",
+            category: "Lado Humano",
+            icon: "fa-person-rays",
+            explanation: "Tu valor no está solo en lo que produces, sino en quién eres.",
+            howToApply: "Tómate 5 minutos hoy para hablar con un compañero de algo que NO sea trabajo. Conecta persona a persona."
+        },
+        {
+            text: "El descanso no es pérdida de tiempo, es mantenimiento de la máquina.",
+            category: "Lado Humano",
+            icon: "fa-bed",
+            explanation: "Un cerebro cansado toma malas decisiones y produce código sucio.",
+            howToApply: "Si estás bloqueado, sal a caminar 10 minutos. Volverás con la solución que llevas hora buscando."
+        },
+        {
+            text: "El éxito vacío es el fracaso más grande.",
+            category: "Lado Humano",
+            icon: "fa-heart-crack",
+            explanation: "De nada sirve ser el mejor en la agencia si llegas a casa y te sientes solo.",
+            howToApply: "Celebra tus logros del día con alguien que ames. Compartir la victoria le da sentido."
+        },
+        {
+            text: "La salud mental es el sistema operativo de tu vida.",
+            category: "Lado Humano",
+            icon: "fa-brain",
+            explanation: "Si el SO falla, ninguna aplicación (trabajo, familia, hobbies) corre bien.",
+            howToApply: "No dudes en pedir un día de salud mental si sientes que estás al borde del burnout. Nova te respalda."
+        },
+        {
+            text: "Trabajamos para vivir, no vivimos para trabajar.",
+            category: "Lado Humano",
+            icon: "fa-sun",
+            explanation: "El trabajo es el medio, la vida es el fin. No confundas los roles.",
+            howToApply: "Planifica tus vacaciones con la misma seriedad con la que planificas un proyecto. Te lo mereces."
+        },
+        {
+            text: "Sé amable contigo mismo cuando falles.",
+            category: "Lado Humano",
+            icon: "fa-hand-holding-heart",
+            explanation: "Eres tu crítico más duro. Trátate como tratarías a tu mejor amigo si cometiera ese error.",
+            howToApply: "En lugar de decir 'soy un idiota', di 'aprendí una forma de no hacerlo'. Perdónate y avanza."
+        },
+        {
+            text: "La bondad es la inteligencia más elevada.",
+            category: "Lado Humano",
+            icon: "fa-dove",
+            explanation: "Ser listo es fácil; ser amable en momentos de estrés requiere verdadera sabiduría.",
+            howToApply: "Si un cliente o compañero está difícil, respôndele con empatía extra. Desarmarás su enojo."
+        },
+        {
+            text: "Nadie en su lecho de muerte deseó haber trabajado más horas extra.",
+            category: "Lado Humano",
+            icon: "fa-hourglass-end",
+            explanation: "Las prioridades se aclaran al final. Intenta tenerlas claras desde ahora.",
+            howToApply: "Haz esa llamada a tus padres o amigos hoy. No esperes al 'momento perfecto'."
+        },
+        {
+            text: "Tu cuerpo es la única casa donde tienes que vivir.",
+            category: "Lado Humano",
+            icon: "fa-person-running",
+            explanation: "Jim Rohn nos recuerda cuidar el vehículo físico.",
+            howToApply: "Bebe agua ahora mismo. Estira la espalda. Tu yo de 80 años te lo agradecerá."
+        },
+        {
+            text: "La paternidad/maternidad es el proyecto más importante.",
+            category: "Lado Humano",
+            icon: "fa-baby-carriage",
+            explanation: "Ningún cliente recordará tu presentación en 10 años; tus hijos recordarán si estuviste ahí.",
+            howToApply: "Bloquea en tu agenda los eventos escolares o médicos de tus hijos. Son innegociables."
+        },
+        {
+            text: "Escuchar es el acto de amor más subestimado.",
+            category: "Lado Humano",
+            icon: "fa-ear-listen",
+            explanation: "Dar tu atención indivisa es el mejor regalo que puedes dar a alguien.",
+            howToApply: "Cuando alguien te hable, deja el celular boca abajo. Míralo a los ojos."
+        },
+        {
+            text: "La gratitud cambia lo que tienes en suficiente.",
+            category: "Lado Humano",
+            icon: "fa-praying-hands",
+            explanation: "La queja perpetua agota. La gratitud energiza.",
+            howToApply: "Antes de empezar a trabajar, piensa en 3 cosas por las que estás agradecido hoy."
+        },
+        {
+            text: "No lleves los problemas de la oficina a la cena.",
+            category: "Lado Humano",
+            icon: "fa-utensils",
+            explanation: "Contaminar tu espacio sagrado destruye tu paz.",
+            howToApply: "Crea un ritual de 'desconexión' al terminar (ej: cambiarte de ropa) para dejar el modo trabajo atrás."
+        },
+        {
+            text: "La vulnerabilidad no es debilidad, es valentía.",
+            category: "Lado Humano",
+            icon: "fa-shield-heart",
+            explanation: "Admitir 'no sé' o 'estoy triste' crea conexiones humanas reales.",
+            howToApply: "Si estás pasando un mal momento personal, compártelo con tu líder si te sientes cómodo. Somos un equipo."
+        },
+        {
+            text: "El dinero va y viene, el tiempo solo se va.",
+            category: "Lado Humano",
+            icon: "fa-clock",
+            explanation: "Valora tu tiempo libre más que cualquier bono.",
+            howToApply: "Optimiza tu trabajo para salir a tiempo. Quedarse tarde por desorganización es quemar vida."
+        },
+        {
+            text: "La felicidad no es un destino, es la actitud con la que viajas.",
+            category: "Lado Humano",
+            icon: "fa-signs-post",
+            explanation: "No esperes a 'cuando me asciendan' para ser feliz.",
+            howToApply: "Encuentra alegría en el café de la mañana o en la risa de un compañero. Disfruta el hoy."
+        },
+        {
+            text: "Cuida a tus amigos, son la familia que eliges.",
+            category: "Lado Humano",
+            icon: "fa-user-group",
+            explanation: "El aislamiento es enemigo de la salud mental.",
+            howToApply: "Manda un mensaje a ese amigo que no ves hace meses. Proponle un café."
+        },
+        {
+            text: "El estrés es pagar intereses por problemas que no han ocurrido.",
+            category: "Lado Humano",
+            icon: "fa-file-invoice-dollar",
+            explanation: "La preocupación excesiva no soluciona nada, solo te enferma.",
+            howToApply: "Si te preocupa algo del futuro, escribe qué puedes hacer hoy. Si no puedes hacer nada hoy, suéltalo."
+        },
+        {
+            text: "Tu sonrisa puede cambiar el día de alguien.",
+            category: "Lado Humano",
+            icon: "fa-face-smile-beam",
+            explanation: "El impacto positivo que tienes en los demás es tu legado diario.",
+            howToApply: "Sonríe y saluda genuinamente al entrar (o al conectarte). El buen humor es contagioso."
+        },
+        {
+            text: "El rencor es un veneno que te bebes tú esperando que muera el otro.",
+            category: "Lado Humano",
+            icon: "fa-flask-poison",
+            explanation: "Perdonar es un regalo para ti mismo, no para el ofensor.",
+            howToApply: "Si tienes un conflicto con alguien, intenta soltar la bronca hoy. Viaja ligero."
+        },
+        {
+            text: "La paz mental es el nuevo lujo.",
+            category: "Lado Humano",
+            icon: "fa-spa",
+            explanation: "En un mundo de ruido, la calma es riqueza.",
+            howToApply: "Protege tu paz. Aléjate de chismes o negatividad innecesaria."
+        },
+        {
+            text: "Haz algo hoy que tu yo del futuro te agradezca.",
+            category: "Lado Humano",
+            icon: "fa-seedling",
+            explanation: "Invierte en ti.",
+            howToApply: "Prepara tu comida saludable para mañana o lee 10 páginas de ese libro."
+        },
+        {
+            text: "Estar ocupado es una decisión, estar presente es una elección.",
+            category: "Lado Humano",
+            icon: "fa-circle-check",
+            explanation: "Puedes estar con tu hijo y estar pensando en el correo. Eso no cuenta.",
+            howToApply: "Donde estén tus pies, que esté tu mente. Enfócate en el ahora."
+        },
+        {
+            text: "La comparación es el ladrón de la alegría.",
+            category: "Lado Humano",
+            icon: "fa-not-equal",
+            explanation: "No compares tu 'detrás de cámaras' con el 'highlight reel' de otros en Instagram.",
+            howToApply: "Enfócate en tu propio progreso. ¿Eres mejor hoy que ayer? Eso es lo único que importa."
+        },
+        {
+            text: "A veces, 'no' es la palabra más saludable.",
+            category: "Lado Humano",
+            icon: "fa-hand",
+            explanation: "Poner límites es amor propio.",
+            howToApply: "Si no puedes tomar ese favor extra sin sacrificar tu bienestar, di no amablemente."
+        },
+        {
+            text: "El caos externo no tiene por qué ser caos interno.",
+            category: "Lado Humano",
+            icon: "fa-om",
+            explanation: "Puedes mantener la calma en medio de la tormenta.",
+            howToApply: "Respira hondo antes de reaccionar ante una crisis. Tu calma calmará a los demás."
+        },
+        {
+            text: "Ama lo que haces, pero ama más a quien eres fuera de lo que haces.",
+            category: "Lado Humano",
+            icon: "fa-heart-circle-check",
+            explanation: "Tu identidad no es tu puesto de trabajo.",
+            howToApply: "Cultiva un hobby que no tenga nada que ver con pantallas o marketing."
+        },
+        {
+            text: "La vida es un eco; lo que envías, regresa.",
+            category: "Lado Humano",
+            icon: "fa-bullhorn",
+            explanation: "Karma, energía, como quieras llamarlo. Da lo bueno.",
+            howToApply: "Haz un favor desinteresado hoy. Ayuda a alguien sin que nadie se entere."
+        },
+        {
+            text: "Eres suficiente, tal como eres.",
+            category: "Lado Humano",
+            icon: "fa-star",
+            explanation: "No necesitas lograr más para valer más.",
+            howToApply: "Recuerda esto especialmente en los días malos. Tu valor es intrínseco."
+        },
+
+        // --- 🎯 CATEGORÍA: ESTRATEGIA DE VENTAS (25 Frases) ---
+        {
+            text: "El silencio cierra ventas.",
+            category: "Estrategia Ventas",
+            icon: "fa-comment-slash",
+            explanation: "Hablar de más después de dar el precio denota inseguridad.",
+            howToApply: "Tip de Cierre: Después de decir el precio, MUTEA tu micrófono. El primero que hable, pierde."
+        },
+        {
+            text: "Vende el destino, no el avión.",
+            category: "Estrategia Ventas",
+            icon: "fa-plane-departure",
+            explanation: "Al cliente no le importa el HTML/CSS, le importa vender más.",
+            howToApply: "No expliques las características técnicas. Explica cómo su vida será mejor con nuestra web."
+        },
+        {
+            text: "El precio solo es un problema en ausencia de valor.",
+            category: "Estrategia Ventas",
+            icon: "fa-scale-unbalanced",
+            explanation: "Si dicen 'es caro', es porque no entendieron qué ganan.",
+            howToApply: "Si objetan precio, no bajes el costo; vuelve a explicar los beneficios y el ROI."
+        },
+        {
+            text: "La objeción es una señal de interés.",
+            category: "Estrategia Ventas",
+            icon: "fa-circle-question",
+            explanation: "Si no les interesara, ya habrían colgado. Preguntan porque quieren comprar pero tienen miedo.",
+            howToApply: "Sonríe cuando escuches una objeción. Resuélvela con calma y cierra."
+        },
+        {
+            text: "A la gente le encanta comprar, pero odia que le vendan.",
+            category: "Estrategia Ventas",
+            icon: "fa-basket-shopping",
+            explanation: "No seas un vendedor agresivo, sé un asesor confiable.",
+            howToApply: "Usa frases como 'Lo que yo haría en tu lugar es...' o 'Para tu caso específico recomiendo...'."
+        },
+        {
+            text: "El seguimiento hace el dinero.",
+            category: "Estrategia Ventas",
+            icon: "fa-arrows-rotate",
+            explanation: "El 80% de las ventas ocurren después del 5to contacto.",
+            howToApply: "Si no responden, no te rindas. Manda un video corto o un artículo de valor. Mantente en su radar."
+        },
+        {
+            text: "Vende con las orejas, no con la boca.",
+            category: "Estrategia Ventas",
+            icon: "fa-ear-listen",
+            explanation: "Quien hace las preguntas controla la conversación.",
+            howToApply: "Tu script debe tener más preguntas que afirmaciones. Deja que ellos te digan qué necesitan."
+        },
+        {
+            text: "La confianza transfiere la venta.",
+            category: "Estrategia Ventas",
+            icon: "fa-handshake-simple",
+            explanation: "Si tú dudas de tu producto, ellos dudarán de comprarte.",
+            howToApply: "Antes de la llamada, repasa nuestros casos de éxito. Créete que somos la mejor opción, porque lo somos."
+        },
+        {
+            text: "Siempre ten un 'Próximo Paso' definido.",
+            category: "Estrategia Ventas",
+            icon: "fa-shoe-prints",
+            explanation: "Nunca cuelgues sin una fecha y hora para la siguiente interacción.",
+            howToApply: "No digas 'luego hablamos'. Di: '¿Te parece bien si revisamos esto el martes a las 10am?'."
+        },
+        {
+            text: "La urgencia debe ser real, no inventada.",
+            category: "Estrategia Ventas",
+            icon: "fa-stopwatch",
+            explanation: "La falsa escasez huele a estafa. La escasez real (cupos, tiempo) mueve a la acción.",
+            howToApply: "Usa fechas reales: 'Necesitamos confirmar hoy para poder agendar el inicio del desarrollo este mismo mes'."
+        },
+        {
+            text: "Véndele a la persona, no a la empresa.",
+            category: "Estrategia Ventas",
+            icon: "fa-user-tie",
+            explanation: "Detrás del cargo 'Director' hay un humano con miedos y deseos.",
+            howToApply: "Descubre qué motivación personal tiene. ¿Quiere impresionar a su jefe? ¿Quiere trabajar menos? Véndele eso."
+        },
+        {
+            text: "El 'No' es el inicio de la negociación.",
+            category: "Estrategia Ventas",
+            icon: "fa-door-closed",
+            explanation: "No tomes el rechazo como final. Averigua qué hay detrás.",
+            howToApply: "Si dicen NO, pregunta: 'Entiendo. ¿Es por el presupuesto, el tiempo o porque no ves el valor?'."
+        },
+        {
+            text: "Usa el nombre del cliente.",
+            category: "Estrategia Ventas",
+            icon: "fa-signature",
+            explanation: "Es el sonido más dulce para cualquier persona.",
+            howToApply: "Repite su nombre 3 veces durante la llamada de forma natural. Crea cercanía inmediata."
+        },
+        {
+            text: "Las historias venden, los datos justifican.",
+            category: "Estrategia Ventas",
+            icon: "fa-book",
+            explanation: "Conecta emocionalmente primero, luego dales la lógica para defender la compra.",
+            howToApply: "Cuenta la historia de 'un cliente como tú que tenía el mismo problema y lo resolvió así...'."
+        },
+        {
+            text: "Asume la venta.",
+            category: "Estrategia Ventas",
+            icon: "fa-check-double",
+            explanation: "Actúa como si ya hubieran decidido comprar.",
+            howToApply: "En lugar de '¿Te gustaría comprar?', di '¿A nombre de quién hacemos la factura?'."
+        },
+        {
+            text: "Resuelve una objeción antes de que la digan.",
+            category: "Estrategia Ventas",
+            icon: "fa-shield-cat",
+            explanation: "Desarman sus defensas si tú mismo mencionas el 'pero'.",
+            howToApply: "'Sé que puedes estar pensando que la inversión es alta, pero déjame mostrarte por qué se paga sola en 3 meses'."
+        },
+        {
+            text: "El experto eres tú.",
+            category: "Estrategia Ventas",
+            icon: "fa-graduation-cap",
+            explanation: "No pidas permiso para asesorar. Guíalos con autoridad.",
+            howToApply: "No digas '¿Qué te parece?'. Di 'Basado en mi experiencia, la mejor estrategia para ti es esta'."
+        },
+        {
+            text: "Evita las palabras débiles.",
+            category: "Estrategia Ventas",
+            icon: "fa-ban",
+            explanation: "'Creo', 'tal vez', 'intentaremos'. Eliminarlas transmite seguridad.",
+            howToApply: "Cambia 'Creo que podemos hacerlo' por 'Podemos hacerlo'. Cambia 'Intentaré' por 'Lo haré'."
+        },
+        {
+            text: "El precio se dice con confianza, no con disculpa.",
+            category: "Estrategia Ventas",
+            icon: "fa-tag",
+            explanation: "Si tú sientes que es caro, ellos también lo sentirán.",
+            howToApply: "Di el precio y calla. No añadas 'pero podemos ajustarlo' inmediatamente."
+        },
+        {
+            text: "Busca el dolor, ofrece la cura.",
+            category: "Estrategia Ventas",
+            icon: "fa-bandage",
+            explanation: "La gente se mueve más por evitar dolor que por ganar placer.",
+            howToApply: "Haz preguntas que evidencien su problema actual: '¿Cuánto tiempo pierdes haciendo esto manual?'."
+        },
+        {
+            text: "Califica al cliente rápido.",
+            category: "Estrategia Ventas",
+            icon: "fa-filter",
+            explanation: "No pierdas tiempo con quien no puede o no quiere comprar.",
+            howToApply: "Pregunta pronto sobre presupuesto y toma de decisiones. Si no encajan, refiérelos y sigue adelante."
+        },
+        {
+            text: "La venta consultiva es educación.",
+            category: "Estrategia Ventas",
+            icon: "fa-chalkboard-user",
+            explanation: "Enseña algo nuevo al cliente en la llamada y ya habrás ganado valor.",
+            howToApply: "Dales un tip gratis sobre su web o redes. Genera reciprocidad."
+        },
+        {
+            text: "Sonríe al teléfono.",
+            category: "Estrategia Ventas",
+            icon: "fa-phone",
+            explanation: "Se escucha. Literalmente cambia tu tono de voz.",
+            howToApply: "Ponte de pie y sonríe mientras hablas. Tu energía se proyectará al otro lado."
+        },
+        {
+            text: "Pide referidos.",
+            category: "Estrategia Ventas",
+            icon: "fa-users-rays",
+            explanation: "La venta más fácil es la que viene recomendada.",
+            howToApply: "Al cerrar un trato feliz, pregunta: '¿Conoces a alguien más que necesite esto?'. Hazlo hábito."
+        },
+        {
+            text: "Celebra cada cierre.",
+            category: "Estrategia Ventas",
+            icon: "fa-champagne-glasses",
+            explanation: "Mantén la moral alta. Las ventas son energía.",
+            howToApply: "Cuando cierres, toca la campana (física o virtual). Contagia el éxito al equipo."
+        },
+        // --- 🚀 CATEGORÍA: EXTENSIÓN GENERAL (46 Frases para 200 Total) ---
+        {
+            text: "El liderazgo no es posición, es acción.",
+            category: "Liderazgo",
+            icon: "fa-chess-king",
+            explanation: "No necesitas un cargo para liderar. Lideras cuando ayudas a otros a mejorar.",
+            howToApply: "Toma la iniciativa en un proyecto estancado. Eso es liderazgo puro."
+        },
+        {
+            text: "Haz cosas que no escalen.",
+            category: "Agencia",
+            icon: "fa-hand-sparkles",
+            explanation: "Al principio, el trato manual y personalizado crea la base de la lealtad.",
+            howToApply: "Manda un video personalizado de agradecimiento a cada nuevo cliente."
+        },
+        {
+            text: "La cultura se come a la estrategia para desayunar.",
+            category: "Agencia",
+            icon: "fa-users-line",
+            explanation: "Peter Drucker. Un equipo unido vence a un plan brillante pero mal ejecutado.",
+            howToApply: "Protege el buen ambiente de la oficina. Es nuestro activo más valioso."
+        },
+        {
+            text: "Si todo es urgente, nada es urgente.",
+            category: "Liderazgo",
+            icon: "fa-bell-slash",
+            explanation: "Vivir apagando fuegos no es trabajar, es sobrevivir.",
+            howToApply: "Clasifica tus tareas con la Matriz de Eisenhower. Elimina lo no importante."
+        },
+        {
+            text: "La perfección es enemiga de lo bueno (y de lo entregado).",
+            category: "Creatividad",
+            icon: "fa-check",
+            explanation: "Mejor hecho que perfecto. Iterar es mejor que estancarse.",
+            howToApply: "Envía el borrador al 80% para recibir feedback temprano. No pulas hasta el infinito."
+        },
+        {
+            text: "El feedback es el desayuno de los campeones.",
+            category: "Mentalidad",
+            icon: "fa-comment-medical",
+            explanation: "Ken Blanchard. Sin retroalimentación no hay crecimiento.",
+            howToApply: "Pide feedback constructivo después de cada presentación. '¿Qué puedo mejorar?'."
+        },
+        {
+            text: "No te quejes, contribuye.",
+            category: "Agencia",
+            icon: "fa-hand-holding-medical",
+            explanation: "La queja pasiva resta energía. La solución activa suma valor.",
+            howToApply: "Si algo no te gusta, propón 3 soluciones antes de señalar el problema."
+        },
+        {
+            text: "Sé el tipo de persona con la que te gustaría trabajar.",
+            category: "Lado Humano",
+            icon: "fa-user-check",
+            explanation: "Sé puntual, amable y competente. Sé el estándar.",
+            howToApply: "Llega 2 minutos antes a las reuniones. Responde los correos rápido."
+        },
+        {
+            text: "La disciplina pesa onzas, el arrepentimiento pesa toneladas.",
+            category: "Motivación Personal",
+            icon: "fa-weight-hanging",
+            explanation: "Jim Rohn. El dolor de trabajar hoy es menor que el dolor de fracasar mañana.",
+            howToApply: "Haz esa tarea difícil ahora. Quítate ese peso de encima."
+        },
+        {
+            text: "Tu red es tu patrimonio.",
+            category: "Éxito Profesional",
+            icon: "fa-network-wired",
+            explanation: "Networking no es vender, es sembrar relaciones.",
+            howToApply: "Ayuda a alguien de tu red sin esperar nada a cambio esta semana."
+        },
+        {
+            text: "Aprende a decir 'no sé'.",
+            category: "Mentalidad",
+            icon: "fa-circle-question",
+            explanation: "La honestidad intelectual genera más confianza que la falsa seguridad.",
+            howToApply: "Si el cliente pregunta algo que ignoras, di: 'No lo sé, pero lo investigo y te digo hoy'."
+        },
+        {
+            text: "El diseño salva vidas (o al menos negocios).",
+            category: "Creatividad",
+            icon: "fa-life-ring",
+            explanation: "Un mal diseño confunde y aleja. Un buen diseño aclara y vende.",
+            howToApply: "Simplifica. Si puedes quitar un elemento sin perder el mensaje, quítalo."
+        },
+        {
+            text: "Las excusas no pagan facturas.",
+            category: "Motivación Personal",
+            icon: "fa-file-invoice",
+            explanation: "Resultados > Razones. Al mercado no le importa por qué fallaste.",
+            howToApply: "Asume responsabilidad radical. Si fallaste, di 'fue mi culpa, lo arreglaré'."
+        },
+        {
+            text: "Sé un eterno estudiante.",
+            category: "Mentalidad",
+            icon: "fa-graduation-cap",
+            explanation: "El día que crees que lo sabes todo, empiezas a morir profesionalmente.",
+            howToApply: "Suscríbete a un newsletter de tu industria y léelo cada mañana."
+        },
+        {
+            text: "El detalle define al maestro.",
+            category: "Creatividad",
+            icon: "fa-magnifying-glass",
+            explanation: "La diferencia entre bueno y excelente está en el último 1%.",
+            howToApply: "Revisa la ortografía, los márgenes y los colores una última vez."
+        },
+        {
+            text: "La consistencia crea confianza.",
+            category: "Liderazgo",
+            icon: "fa-lock",
+            explanation: "Sé predecible en tu excelencia. Que sepan que siempre entregas.",
+            howToApply: "Cumple tus promesas, por pequeñas que sean."
+        },
+        {
+            text: "No subestimes el poder de un descanso.",
+            category: "Lado Humano",
+            icon: "fa-mug-hot",
+            explanation: "A veces la solución aparece cuando dejas de buscarla.",
+            howToApply: "Tómate un café lejos de la pantalla."
+        },
+        {
+            text: "El ego es el enemigo.",
+            category: "Liderazgo",
+            icon: "fa-user-ninja",
+            explanation: "Ryan Holiday. La humildad te mantiene aprendiendo.",
+            howToApply: "Acepta que la idea del pasante puede ser mejor que la tuya."
+        },
+        {
+            text: "Hazlo simple, estúpido (KISS).",
+            category: "Creatividad",
+            icon: "fa-cube",
+            explanation: "Keep It Simple, Stupid. La complejidad es pereza mental.",
+            howToApply: "Explica tu idea en una servilleta. Si no cabe, es muy compleja."
+        },
+        {
+            text: "Mide dos veces, corta una.",
+            category: "Agencia",
+            icon: "fa-scissors",
+            explanation: "La planificación previene el desperdicio.",
+            howToApply: "Relee el brief antes de empezar a diseñar."
+        },
+        {
+            text: "La inspiración existe, pero tiene que encontrarte trabajando.",
+            category: "Creatividad",
+            icon: "fa-pen-ruler",
+            explanation: "Picasso. No esperes a la musa, empieza a bocetar.",
+            howToApply: "Empieza a escribir o diseñar *mal*. Luego edita y mejora."
+        },
+        {
+            text: "Si no sumas, restas.",
+            category: "Liderazgo",
+            icon: "fa-plus-minus",
+            explanation: "No hay punto medio en un equipo de alto rendimiento.",
+            howToApply: "Pregúntate: ¿Mi aporte en esta reunión fue valioso?"
+        },
+        {
+            text: "La suerte favorece a la mente preparada.",
+            category: "Éxito Profesional",
+            icon: "fa-clover",
+            explanation: "Pasteur. La oportunidad es calva, hay que agarrarla por los pelos.",
+            howToApply: "Mantén tu portafolio actualizado siempre. Nunca sabes cuándo llega el gran cliente."
+        },
+        {
+            text: "Piensa global, actúa local.",
+            category: "Agencia",
+            icon: "fa-globe-americas",
+            explanation: "Estándares mundiales, trato personalizado.",
+            howToApply: "Conoce el barrio de tu cliente, pero dale un servicio de Wall Street."
+        },
+        {
+            text: "La calidad nunca es un accidente.",
+            category: "Agencia",
+            icon: "fa-award",
+            explanation: "Es siempre el resultado de una intención, esfuerzo y ejecución inteligente.",
+            howToApply: "No dejes nada al azar en tu entrega final."
+        },
+        {
+            text: "Sé el cambio que quieres ver.",
+            category: "Liderazgo",
+            icon: "fa-wand-magic",
+            explanation: "Gandhi. No critiques la cultura, mejórala con tu ejemplo.",
+            howToApply: "Si nadie limpia la sala de juntas, límpiala tú. Lidera con el ejemplo."
+        },
+        {
+            text: "El talento gana partidos, pero el trabajo en equipo gana campeonatos.",
+            category: "Liderazgo",
+            icon: "fa-trophy",
+            explanation: "Michael Jordan. Solo llegas más rápido, juntos llegamos más lejos.",
+            howToApply: "Da crédito público a quienes te ayudaron en el proyecto."
+        },
+        {
+            text: "No dejes para mañana lo que puedes automatizar hoy.",
+            category: "ADN Nova",
+            icon: "fa-robot",
+            explanation: "La eficiencia tecnológica es nuestro ADN.",
+            howToApply: "Si repetiste el proceso 3 veces, escribe un script."
+        },
+        {
+            text: "La empatía es el skill más rentable.",
+            category: "Ventas",
+            icon: "fa-hand-holding-heart",
+            explanation: "Entender al cliente vende más que cualquier técnica de cierre.",
+            howToApply: "Ponte en los zapatos del cliente antes de enviar la factura."
+        },
+        {
+            text: "Hazlo bien o no lo hagas.",
+            category: "Motivación Personal",
+            icon: "fa-hammer",
+            explanation: "La mediocridad no tiene cabida en Nova.",
+            howToApply: "Si no tienes tiempo de hacerlo bien, no digas que sí."
+        },
+        {
+            text: "El miedo es una brújula.",
+            category: "Motivación Personal",
+            icon: "fa-compass-drafting",
+            explanation: "Lo que más miedo te da hacer suele ser lo que más necesitas hacer.",
+            howToApply: "¿Te da miedo esa llamada? Hazla primero."
+        },
+        {
+            text: "La repetición es la madre de la habilidad.",
+            category: "Mentalidad",
+            icon: "fa-rotate",
+            explanation: "Tony Robbins. La maestría viene de la práctica aburrida.",
+            howToApply: "Practica tu pitch de ventas frente al espejo 10 veces."
+        },
+        {
+            text: "Sé honesto, incluso cuando duela.",
+            category: "Lado Humano",
+            icon: "fa-scale-balanced",
+            explanation: "La verdad construye confianza a largo plazo.",
+            howToApply: "Si te equivocaste, dilo rápido y propón la solución."
+        },
+        {
+            text: "La creatividad es conectar cosas.",
+            category: "Creatividad",
+            icon: "fa-link",
+            explanation: "Steve Jobs. Lee, viaja, ve películas. Todo suma.",
+            howToApply: "Busca inspiración fuera de tu industria para resolver problemas de tu industria."
+        },
+        {
+            text: "El usuario es el héroe, no nosotros.",
+            category: "Agencia",
+            icon: "fa-mask",
+            explanation: "En la historia de la marca, nosotros somos Yoda, ellos son Luke.",
+            howToApply: "Haz que el cliente se sienta el protagonista del éxito."
+        },
+        {
+            text: "Disfruta el proceso.",
+            category: "Lado Humano",
+            icon: "fa-video",
+            explanation: "La meta es importante, pero pasas el 99% del tiempo en el camino.",
+            howToApply: "Pon música que te guste mientras trabajas."
+        },
+        {
+            text: "Hechos, no palabras.",
+            category: "Motivación Personal",
+            icon: "fa-gavel",
+            explanation: "Acta non verba. Lo que haces grita más fuerte que lo que dices.",
+            howToApply: "Entrega antes de la fecha límite."
+        },
+        {
+            text: "La curiosidad mató al gato, pero hizo rico al marketero.",
+            category: "ADN Nova",
+            icon: "fa-cat",
+            explanation: "Preguntar '¿qué pasaría si...?' es el inicio de la innovación.",
+            howToApply: "Haz A/B testing con ese copy raro. Podría ser un hit."
+        },
+        {
+            text: "No te tomes nada personal.",
+            category: "Mentalidad",
+            icon: "fa-shield-virus",
+            explanation: "Acuerdo Tolteca. La opinión de otros refleja su realidad, no la tuya.",
+            howToApply: "Si el cliente critica el diseño, critica el trabajo, no tu valía."
+        },
+        {
+            text: "Da siempre más de lo que se espera.",
+            category: "Éxito Profesional",
+            icon: "fa-gift",
+            explanation: "El factor WOW fideliza.",
+            howToApply: "Entrega un reporte extra o un recurso gratuito con el proyecto final."
+        },
+        {
+            text: "Tu mente es un jardín, cuida lo que plantas.",
+            category: "Mentalidad",
+            icon: "fa-plant-wilt",
+            explanation: "Pensamientos negativos traen resultados negativos.",
+            howToApply: "Elimina la queja de tu vocabulario por 24 horas."
+        },
+        {
+            text: "El orden exterior trae orden interior.",
+            category: "Productividad",
+            icon: "fa-box-archive",
+            explanation: "Un escritorio limpio ayuda a una mente clara.",
+            howToApply: "Limpia tu espacio de trabajo antes de irte hoy."
+        },
+        {
+            text: "Somos lo que hacemos repetidamente.",
+            category: "Éxito Profesional",
+            icon: "fa-rotate-right",
+            explanation: "Aristóteles. La excelencia es un hábito.",
+            howToApply: "Mantén tus estándares altos incluso cuando nadie mira."
+        },
+        {
+            text: "Lo único constante es el cambio.",
+            category: "Mentalidad",
+            icon: "fa-wind",
+            explanation: "Heráclito. Fluye con él, no nades en contra.",
+            howToApply: "Abraza la nueva actualización de software en lugar de odiarla."
+        },
+        {
+            text: "Crea valor, el dinero seguirá.",
+            category: "Éxito Profesional",
+            icon: "fa-hand-holding-dollar",
+            explanation: "Enfócate en servir y la retribución llegará.",
+            howToApply: "Pregúntate: ¿Cómo puedo ser más útil a mi equipo hoy?"
+        },
+        {
+            text: "Gracias por ser parte de Nova.",
+            category: "ADN Nova",
+            icon: "fa-heart",
+            explanation: "Cada pieza del equipo es vital.",
+            howToApply: "Siéntete valorado. Eres el motor de esta nave."
+        },
+
+
+
+    ],
+
+    currentIndex: 0,
+    isShowingQuote: false,
+    rotationInterval: null,
+
+    init() {
+        // Show a quote immediately so the user sees it working
+        this.isShowingQuote = true;
+        this.updateDisplay();
+
+        // Start alternating logic
+        // We'll alternate every 45 seconds
+        // Order: Quote (current) -> Date (45s) -> Quote (45s) -> Repeat
+        this.startRotation();
+    },
+
+    startRotation() {
+        if (this.rotationInterval) clearInterval(this.rotationInterval);
+
+        this.rotationInterval = setInterval(() => {
+            this.isShowingQuote = !this.isShowingQuote;
+            this.updateDisplay();
+        }, 45000); // 45 seconds
+    },
+
+    updateDisplay() {
+        const container = document.getElementById('date-quote-container');
+        if (!container) return;
+
+        container.style.opacity = '0';
+        container.style.transition = 'opacity 0.5s ease-in-out';
+
+        setTimeout(() => {
+            if (this.isShowingQuote) {
+                const quote = this.getRandomQuote();
+
+                // Logic for long text marquee effect
+                const isLongText = quote.text.length > 60;
+                let textHtml = '';
+
+                if (isLongText) {
+                    // Marquee structure for scrolling text
+                    textHtml = `
+                        <div style="overflow:hidden; max-width:400px; white-space:nowrap; mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent); -webkit-mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);">
+                            <div class="quote-marquee">
+                                <span style="color:var(--text-secondary); font-size:0.9rem; font-style:italic;">"${quote.text}"</span>
+                                <span style="color:var(--text-secondary); font-size:0.9rem; font-style:italic;">"${quote.text}"</span>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    // Static text for short quotes
+                    textHtml = `<span style="color:var(--text-secondary); font-size:0.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:400px; font-style:italic;">"${quote.text}"</span>`;
+                }
+
+                container.innerHTML = `
+                    <div onclick="MotivationalQuotes.showDetails(${this.currentIndex})" style="cursor:pointer; display:flex; align-items:center; gap:10px; animation: slideIn 0.5s ease-out;">
+                        <i class="fa-solid ${quote.icon} gradient-text-icon" style="font-size:1.1rem;"></i>
+                        ${textHtml}
+                    </div>
+                `;
+            } else {
+                const dateText = new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                container.innerHTML = `
+                    <div style="display:flex; align-items:center; gap:10px; animation: slideIn 0.5s ease-out;">
+                        <span style="color:var(--text-secondary); font-size:0.9rem; white-space:nowrap;">📅 ${dateText}</span>
+                    </div>
+                `;
+            }
+            container.style.opacity = '1';
+        }, 500);
+    },
+
+    getRandomQuote() {
+        this.currentIndex = Math.floor(Math.random() * this.quotes.length);
+        return this.quotes[this.currentIndex];
+    },
+
+    showDetails(index) {
+        const quote = this.quotes[index];
+        if (!quote) return;
+
+        // Map categories to specific gradient styles/colors if desired, or use general premium style
+        const tagsHtml = `
+            <div style="display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; background: rgba(0,180,216,0.1); border-radius: 50px; border: 1px solid rgba(0,180,216,0.2);">
+                <i class="fa-solid fa-tag" style="color: #00b4d8; font-size: 0.8rem;"></i>
+                <span style="color: #00b4d8; font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">${quote.category}</span>
+            </div>
+        `;
+
+        const contentHtml = `
+            <div style="padding: 24px; text-align: center;">
+                <div style="width: 80px; height: 80px; background: linear-gradient(135deg, #00b4d8, #ec4899); border-radius: 24px; display: flex; align-items: center; justify-content: center; margin: 0 auto 25px; box-shadow: 0 15px 30px rgba(0,180,216,0.3); transform: rotate(-5deg);">
+                    <i class="fa-solid ${quote.icon}" style="color: white; font-size: 2.5rem;"></i>
+                </div>
+                
+                ${tagsHtml}
+                
+                <h2 style="background: linear-gradient(135deg, #0f172a, #334155); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 1.8rem; font-weight: 800; margin: 25px 0; line-height: 1.4; font-family: 'Inter', sans-serif;">
+                    "${quote.text}"
+                </h2>
+                
+                <div style="display: grid; gap: 20px; text-align: left;">
+                    <div style="background: linear-gradient(to right, #f8fafc, #fff); padding: 20px; border-radius: 16px; border: 1px solid #e2e8f0; border-left: 4px solid #00b4d8; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+                        <h3 style="font-size: 1rem; color: #1e293b; margin-bottom: 8px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                            <i class="fa-solid fa-lightbulb" style="color: #00b4d8;"></i> Significado
+                        </h3>
+                        <p style="color: #64748b; line-height: 1.6; font-size: 0.95rem; margin: 0;">${quote.explanation}</p>
+                    </div>
+                    
+                    <div style="background: linear-gradient(135deg, #fff, #fdf2f8); padding: 20px; border-radius: 16px; border: 1px solid #fbcfe8; border-left: 4px solid #ec4899; box-shadow: 0 4px 6px -1px rgba(236, 72, 153, 0.05);">
+                        <h3 style="font-size: 1rem; color: #1e293b; margin-bottom: 8px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                            <i class="fa-solid fa-rocket" style="color: #ec4899;"></i> Aplicación Práctica
+                        </h3>
+                        <p style="color: #64748b; line-height: 1.6; font-size: 0.95rem; margin: 0;">${quote.howToApply}</p>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const footerHtml = `
+            <div style="width: 100%; display: flex; justify-content: space-between; align-items: center;">
+                <button class="btn" onclick="UI.modal.hide()" style="background: transparent; color: #64748b; font-weight: 600;">
+                    Cerrar
+                </button>
+                <button class="btn btn-primary" onclick="UI.modal.hide(); MotivationalQuotes.updateDisplay();" style="border-radius: 12px; padding: 12px 24px; box-shadow: 0 10px 20px -5px rgba(0,180,216,0.4);">
+                    <span>¡Inspirado!</span>
+                    <i class="fa-solid fa-bolt" style="margin-left: 8px;"></i>
+                </button>
+            </div>
+        `;
+
+        UI.modal.show('', contentHtml, footerHtml);
+    }
+};
+
+window.MotivationalQuotes = MotivationalQuotes;

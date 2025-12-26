@@ -1,0 +1,340 @@
+ANÁLISIS DE SEGURIDAD - NOVADEX CRM
+${'='.repeat(80)}
+
+RESUMEN EJECUTIVO
+${'-'.repeat(80)}
+Nivel de Seguridad: 🟡 MEDIO-ALTO
+Vulnerabilidades Críticas: 0
+Vulnerabilidades Altas: 2
+Vulnerabilidades Medias: 3
+Vulnerabilidades Bajas: 2
+
+${'='.repeat(80)}
+1. PROTECCIONES IMPLEMENTADAS ✅
+${'='.repeat(80)}
+
+✅ SQL Injection Prevention
+${'-'.repeat(80)}
+Estado: PROTEGIDO
+Implementación: Prepared Statements en todas las queries
+
+Ejemplo (Correcto):
+```javascript
+db.run('INSERT INTO leads (id, nombre) VALUES (?, ?)', [id, nombre]);
+```
+
+Verificado en: Todos los 21 archivos de rutas
+Cobertura: 100% de las queries
+
+✅ IDs No Secuenciales
+${'-'.repeat(80)}
+Estado: IMPLEMENTADO
+Tecnología: UUID v4
+Beneficio: Evita enumeración de recursos
+
+Ejemplo:
+```javascript
+const id = uuidv4();  // 'a1b2c3d4-e5f6-...'
+```
+
+✅ Rate Limiting
+${'-'.repeat(80)}
+Estado: IMPLEMENTADO (Nebula)
+Límites:
+- 3 búsquedas cada 7 minutos
+- 20 búsquedas diarias por usuario  
+- 50 búsquedas diarias por equipo
+
+Archivo: server/services/rate-limiter.js
+
+✅ CORS Configurado
+${'-'.repeat(80)}
+Estado: ACTIVADO
+Archivo: server/index.js
+```javascript
+app.use(cors());
+```
+
+${'='.repeat(80)}
+2. VULNERABILIDADES DE ALTA PRIORIDAD 🔴
+${'='.repeat(80)}
+
+🔴 ALTA #1: Autenticación Incompleta
+${'-'.repeat(80)}
+Descripción:
+El sistema no tiene autenticación JWT implementada. Actualmente,
+el userId está hardcodeado como 'admin'.
+
+Ubicación: server/routes/nebula.js, línea 14
+```javascript
+const userId = 'admin'; // TODO: Obtener del token JWT
+```
+
+Impacto:
+- Cualquier usuario puede acceder a todos los endpoints
+- No hay control de acceso basado en roles
+- No se puede auditar acciones por usuario
+
+Recomendación:
+```javascript
+// Implementar middleware de autenticación
+const authMiddleware = require('./middleware/auth');
+app.use('/api', authMiddleware);
+
+// En cada ruta:
+const userId = req.user.id;  // Extraído del token JWT
+```
+
+Prioridad: 🔴 ALTA
+Esfuerzo: 2-3 días
+
+🔴 ALTA #2: HTTPS No Forzado
+${'-'.repeat(80)}
+Descripción:
+El servidor no fuerza HTTPS, permitiendo tráfico HTTP no cifrado.
+
+Ubicación: server/index.js
+
+Impacto:
+- Credenciales pueden ser interceptadas (man-in-the-middle)
+- Datos sensibles transmitidos en texto plano
+
+Recomendación:
+```javascript
+// Forzar HTTPS en producción
+if (process.env.NODE_ENV === 'production') {
+    app.use((req, res, next) => {
+        if (req.header('x-forwarded-proto') !== 'https') {
+            res.redirect(`https://${req.header('host')}${req.url}`);
+        } else {
+            next();
+        }
+    });
+}
+```
+
+Prioridad: 🔴 ALTA (para producción)
+Esfuerzo: 1 día
+
+${'='.repeat(80)}
+3. VULNERABILIDADES DE PRIORIDAD MEDIA 🟡
+${'='.repeat(80)}
+
+🟡 MEDIA #1: Validación de Inputs Insuficiente
+${'-'.repeat(80)}
+Descripción:
+No hay validación exhaustiva de inputs en los endpoints.
+
+Ejemplo problemático:
+```javascript
+// No valida formato de email
+const { correo_electronico } = req.body;
+```
+
+Impacto:
+- Datos malformados pueden entrar a la base de datos
+- Posible XSS si datos se renderizan sin sanitizar
+
+Recomendación:
+```javascript
+const { body, validationResult } = require('express-validator');
+
+router.post('/api/leads', [
+    body('correo_electronico').isEmail(),
+    body('telefono').matches(/^[0-9-]+$/),
+    body('nombre').trim().escape()
+], (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+    }
+    // ... procesar
+});
+```
+
+Prioridad: 🟡 MEDIA
+Esfuerzo: 3-4 días
+
+🟡 MEDIA #2: Sin Helmet para Headers de Seguridad
+${'-'.repeat(80)}
+Descripción:
+No se usan headers de seguridad HTTP estándar.
+
+Faltantes:
+- X-Content-Type-Options
+- X-Frame-Options
+- Content-Security-Policy
+- Strict-Transport-Security
+
+Recomendación:
+```javascript
+const helmet = require('helmet');
+app.use(helmet());
+```
+
+Prioridad: 🟡 MEDIA
+Esfuerzo: 0.5 días
+
+🟡 MEDIA #3: Archivos Subidos Sin Validación Estricta
+${'-'.repeat(80)}
+Descripción:
+Multer acepta archivos sin validación de tipo MIME estricta.
+
+Ubicación: server/upload.js
+
+Riesgo:
+- Posible upload de archivos maliciosos
+
+Recomendación:
+```javascript
+const fileFilter = (req, file, cb) => {
+    const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
+    if (allowedTypes.includes(file.mimetype)) {
+        cb(null, true);
+    } else {
+        cb(new Error('Tipo de archivo no permitido'), false);
+    }
+};
+
+const upload = multer({ 
+    storage: storage,
+    fileFilter: fileFilter,
+    limits: { fileSize: 5 * 1024 * 1024 } // 5MB
+});
+```
+
+Prioridad: 🟡 MEDIA
+Esfuerzo: 1 día
+
+${'='.repeat(80)}
+4. VULNERABILIDADES DE PRIORIDAD BAJA 🟢
+${'='.repeat(80)}
+
+🟢 BAJA #1: Dependencias Desactualizadas
+${'-'.repeat(80)}
+Descripción:
+Algunas dependencias pueden tener versiones más recientes.
+
+Recomendación:
+```bash
+npm audit
+npm audit fix
+npm update
+```
+
+Prioridad: 🟢 BAJA
+Esfuerzo: 0.5 días
+
+🟢 BAJA #2: Sin Rate Limiting Global
+${'-'.repeat(80)}
+Descripción:
+Solo Nebula tiene rate limiting. El resto de endpoints están abiertos.
+
+Impacto:
+- Posible DDoS en otros endpoints
+- Abuso de recursos
+
+Recomendación:
+```javascript
+const rateLimit = require('express-rate-limit');
+
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutos
+    max: 100 // límite de requests
+});
+
+app.use('/api/', limiter);
+```
+
+Prioridad: 🟢 BAJA
+Esfuerzo: 1 día
+
+${'='.repeat(80)}
+5. INFORMACIÓN SENSIBLE EXPUESTA
+${'='.repeat(80)}
+
+✅ No se encontró exposición de:
+- Claves API en código
+- Contraseñas hardcodeadas
+- Tokens de acceso
+- Secretos en repositorio
+
+⚠️ Recomendación: Usar .env para configuración
+```
+# .env
+DB_PATH=./novadex.db
+JWT_SECRET=your_secret_here
+PORT=9023
+NODE_ENV=production
+```
+
+${'='.repeat(80)}
+6. OWASP TOP 10 COMPLIANCE
+${'='.repeat(80)}
+
+A01:2021 – Broken Access Control
+Status: 🔴 VULNERABLE (sin autenticación)
+
+A02:2021 – Cryptographic Failures
+Status: 🟡 PARCIALMENTE PROTEGIDO (HTTPS pendiente)
+
+A03:2021 – Injection
+Status: ✅ PROTEGIDO (prepared statements)
+
+A04:2021 – Insecure Design
+Status: ✅ SEGURO (arquitectura sólida)
+
+A05:2021 – Security Misconfiguration
+Status: 🟡 MEJORABLE (headers faltantes)
+
+A06:2021 – Vulnerable Components
+Status: 🟢 ACEPTABLE (dependencias actuales)
+
+A07:2021 – Authentication Failures
+Status: 🔴 VULNERABLE (no implementada)
+
+A08:2021 – Data Integrity Failures
+Status: ✅ PROTEGIDO (transacciones)
+
+A09:2021 – Security Logging Failures
+Status: 🟡 BÁSICO (console.log)
+
+A10:2021 – SSRF
+Status: ✅ NO APLICA (no hay fetch a URLs dinámicas)
+
+${'='.repeat(80)}
+7. PLAN DE REMEDIACIÓN SUGERIDO
+${'='.repeat(80)}
+
+Fase 1 (Críticas - Semana 1):
+1. Implementar JWT authentication
+2. Configurar HTTPS forzado
+
+Fase 2 (Altas - Semana 2):
+3. Agregar Helmet para headers
+4. Implementar validación de inputs
+5. Restringir tipos de archivos subidos
+
+Fase 3 (Medias - Semana 3):
+6. Implementar rate limiting global
+7. Agregar logging estructurado
+8. Actualizar dependencias
+
+${'='.repeat(80)}
+CONCLUSIÓN
+${'='.repeat(80)}
+
+El sistema tiene buenas bases de seguridad (SQL injection protegido,
+UUIDs, rate limiting parcial) pero necesita:
+
+URGENTE:
+- Autenticación completa
+- HTTPS en producción
+
+RECOMENDADO:
+- Validación de inputs
+- Headers de seguridad
+- Rate limiting global
+
+Estado actual: ADECUADO para desarrollo
+Estado deseado: EXCELENTE para producción

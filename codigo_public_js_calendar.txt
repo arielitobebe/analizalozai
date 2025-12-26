@@ -1,0 +1,329 @@
+ARCHIVO: public\js\calendar.js
+================================================================================
+
+const Calendar = {
+    calendar: null,
+
+    init() {
+        this.renderView();
+        this.initCalendar();
+    },
+
+    renderView() {
+        const container = document.getElementById('module-content');
+        container.innerHTML = `
+            ${UI.renderHeader('CALENDARIO', {
+            hideSearch: true,
+            moduleTitle: 'Calendario Centralizado',
+            description: 'Vista unificada de proyectos, tareas y eventos importantes.',
+            actionButton: `<div style="display:flex; gap:10px;">
+                    <button class="btn btn-secondary" onclick="Calendar.showLegend()">
+                        <i class="fa-solid fa-circle-info"></i> Leyenda
+                    </button>
+                    <button class="btn btn-primary" onclick="Calendar.createEvent()">
+                        <i class="fa-solid fa-plus"></i> Nuevo Evento
+                    </button>
+                </div>`
+        })}
+
+            <div class="calendar-container card glass" style="margin-top:25px; padding:25px;">
+                <div id="fullcalendar"></div>
+            </div>
+        `;
+        // Initialize quotes
+        if (window.MotivationalQuotes) {
+            setTimeout(() => window.MotivationalQuotes.init(), 100);
+        }
+    },
+
+    async initCalendar() {
+        const calendarEl = document.getElementById('fullcalendar');
+        if (!calendarEl) return;
+
+        // Fetch events from different sources
+        const events = await this.fetchAllEvents();
+
+        this.calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
+            },
+            buttonText: {
+                today: 'Hoy',
+                month: 'Mes',
+                week: 'Semana',
+                day: 'Día',
+                list: 'Lista'
+            },
+            locale: 'es',
+            events: events,
+            eventClick: (info) => this.handleEventClick(info),
+            height: 'auto',
+            eventDisplay: 'block',
+            displayEventTime: true,
+            eventTimeFormat: {
+                hour: '2-digit',
+                minute: '2-digit',
+                meridiem: false
+            },
+            views: {
+                dayGridMonth: {
+                    dayMaxEventRows: 3
+                }
+            },
+            moreLinkClick: 'popover',
+            navLinks: true,
+            selectable: true,
+            selectMirror: true,
+            select: (info) => this.handleDateSelect(info),
+            editable: true,
+            eventDrop: (info) => this.handleEventDrop(info)
+        });
+
+        this.calendar.render();
+    },
+
+    async fetchAllEvents() {
+        const events = [];
+
+        try {
+            // Fetch projects
+            const projectsRes = await fetch('/api/proyectos');
+            const projects = await projectsRes.json();
+
+            projects.forEach(p => {
+                if (p.fecha_inicio) {
+                    events.push({
+                        id: `project-start-${p.id}`,
+                        title: `🚀 ${p.nombre} (Inicio)`,
+                        start: p.fecha_inicio,
+                        backgroundColor: '#6366f1',
+                        borderColor: '#4f46e5',
+                        extendedProps: {
+                            type: 'project-start',
+                            projectId: p.id
+                        }
+                    });
+                }
+
+                if (p.fecha_entrega) {
+                    events.push({
+                        id: `project-end-${p.id}`,
+                        title: `🎯 ${p.nombre} (Entrega)`,
+                        start: p.fecha_entrega,
+                        backgroundColor: '#10b981',
+                        borderColor: '#059669',
+                        extendedProps: {
+                            type: 'project-end',
+                            projectId: p.id
+                        }
+                    });
+                }
+            });
+
+            // Fetch tasks
+            const tasksRes = await fetch('/api/tareas');
+            const tasks = await tasksRes.json();
+
+            tasks.forEach(t => {
+                if (t.fecha_limite) {
+                    const priorityColors = {
+                        alta: { bg: '#ef4444', border: '#dc2626' },
+                        media: { bg: '#f59e0b', border: '#d97706' },
+                        baja: { bg: '#94a3b8', border: '#64748b' }
+                    };
+                    const colors = priorityColors[t.prioridad || 'media'];
+
+                    events.push({
+                        id: `task-${t.id}`,
+                        title: `✓ ${t.nombre}`,
+                        start: t.fecha_limite,
+                        backgroundColor: colors.bg,
+                        borderColor: colors.border,
+                        extendedProps: {
+                            type: 'task',
+                            taskId: t.id,
+                            priority: t.prioridad
+                        }
+                    });
+                }
+            });
+
+        } catch (e) {
+            console.error('Error fetching calendar events:', e);
+        }
+
+        return events;
+    },
+
+    handleEventClick(info) {
+        const event = info.event;
+        const props = event.extendedProps;
+
+        if (props.type === 'project-start' || props.type === 'project-end') {
+            const message = props.type === 'project-start'
+                ? `Inicio del proyecto: ${event.title}`
+                : `Entrega del proyecto: ${event.title}`;
+
+            const html = `
+                <div style="text-align:center; padding:20px;">
+                    <i class="fa-solid fa-briefcase" style="font-size:3rem; color:var(--primary-medium); margin-bottom:15px; display:block;"></i>
+                    <h3>${event.title}</h3>
+                    <p style="color:var(--text-secondary);">${new Date(event.start).toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                    <button class="btn btn-primary mt-3" onclick="window.location.hash='proyectos'; Projects.showDetails('${props.projectId}'); UI.modal.hide();">
+                        Ver Proyecto Completo
+                    </button>
+                </div>
+            `;
+            UI.modal.show('Evento de Proyecto', html, `<button class="btn btn-secondary" onclick="UI.modal.hide()">Cerrar</button>`);
+        }
+
+        if (props.type === 'task') {
+            const html = `
+                <div style="text-align:center; padding:20px;">
+                    <i class="fa-solid fa-check-circle" style="font-size:3rem; color:var(--success); margin-bottom:15px; display:block;"></i>
+                    <h3>${event.title}</h3>
+                    <p style="color:var(--text-secondary);">Fecha límite: ${new Date(event.start).toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                    <span class="badge badge-warning" style="margin-top:10px;">Prioridad: ${(props.priority || 'media').toUpperCase()}</span>
+                    <button class="btn btn-primary mt-3" onclick="window.location.hash='tareas'; Tasks.showDetails('${props.taskId}'); UI.modal.hide();">
+                        Ver Tarea Completa
+                    </button>
+                </div>
+            `;
+            UI.modal.show('Tarea Programada', html, `<button class="btn btn-secondary" onclick="UI.modal.hide()">Cerrar</button>`);
+        }
+    },
+
+    handleDateSelect(info) {
+        const html = `
+            <form id="quick-event-form">
+                <div class="form-group">
+                    <label>Título del Evento</label>
+                    <input type="text" name="title" class="form-control" required placeholder="Ej: Reunión con cliente">
+                </div>
+
+                <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:15px;">
+                    <div class="form-group">
+                        <label>Fecha Inicio</label>
+                        <input type="datetime-local" name="start" class="form-control" value="${info.startStr}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Fecha Fin</label>
+                        <input type="datetime-local" name="end" class="form-control" value="${info.endStr}">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Tipo</label>
+                    <select name="type" class="form-select">
+                        <option value="personal">Personal</option>
+                        <option value="meeting">Reunión</option>
+                        <option value="deadline">Deadline</option>
+                        <option value="reminder">Recordatorio</option>
+                    </select>
+                </div>
+            </form>
+        `;
+
+        UI.modal.show('Crear Evento Rápido', html, `
+            <button class="btn btn-secondary" onclick="UI.modal.hide()">Cancelar</button>
+            <button class="btn btn-primary" onclick="Calendar.saveQuickEvent()">Guardar</button>
+        `);
+    },
+
+    saveQuickEvent() {
+        const form = document.getElementById('quick-event-form');
+        if (!form.reportValidity()) return;
+
+        const data = Object.fromEntries(new FormData(form).entries());
+
+        const typeColors = {
+            personal: { bg: '#8b5cf6', border: '#7c3aed' },
+            meeting: { bg: '#3b82f6', border: '#2563eb' },
+            deadline: { bg: '#ef4444', border: '#dc2626' },
+            reminder: { bg: '#f59e0b', border: '#d97706' }
+        };
+
+        const colors = typeColors[data.type];
+
+        this.calendar.addEvent({
+            id: `custom-${Date.now()}`,
+            title: data.title,
+            start: data.start,
+            end: data.end || data.start,
+            backgroundColor: colors.bg,
+            borderColor: colors.border,
+            extendedProps: {
+                type: 'custom',
+                eventType: data.type
+            }
+        });
+
+        UI.notify('✅ Evento agregado al calendario', 'success');
+        UI.modal.hide();
+    },
+
+    handleEventDrop(info) {
+        UI.notify(`Evento "${info.event.title}" movido a ${info.event.start.toLocaleDateString()}`, 'info');
+        // TODO: Persist changes to backend
+    },
+
+    createEvent() {
+        this.handleDateSelect({
+            startStr: new Date().toISOString().slice(0, 16),
+            endStr: new Date(Date.now() + 3600000).toISOString().slice(0, 16)
+        });
+    },
+
+    showLegend() {
+        const html = `
+            <div style="display:grid; gap:15px;">
+                <h4 style="margin:0 0 10px 0;">Tipos de Eventos</h4>
+                
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <div style="width:20px; height:20px; background:#6366f1; border-radius:4px;"></div>
+                    <span>🚀 Inicio de Proyecto</span>
+                </div>
+
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <div style="width:20px; height:20px; background:#10b981; border-radius:4px;"></div>
+                    <span>🎯 Entrega de Proyecto</span>
+                </div>
+
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <div style="width:20px; height:20px; background:#ef4444; border-radius:4px;"></div>
+                    <span>✓ Tarea Prioridad Alta</span>
+                </div>
+
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <div style="width:20px; height:20px; background:#f59e0b; border-radius:4px;"></div>
+                    <span>✓ Tarea Prioridad Media</span>
+                </div>
+
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <div style="width:20px; height:20px; background:#94a3b8; border-radius:4px;"></div>
+                    <span>✓ Tarea Prioridad Baja</span>
+                </div>
+
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <div style="width:20px; height:20px; background:#8b5cf6; border-radius:4px;"></div>
+                    <span>📅 Evento Personal</span>
+                </div>
+            </div>
+        `;
+
+        UI.modal.show('Leyenda del Calendario', html, `<button class="btn btn-secondary" onclick="UI.modal.hide()">Cerrar</button>`);
+    },
+
+    async refresh() {
+        if (this.calendar) {
+            const events = await this.fetchAllEvents();
+            this.calendar.removeAllEvents();
+            this.calendar.addEventSource(events);
+        }
+    }
+};
+
+window.Calendar = Calendar;

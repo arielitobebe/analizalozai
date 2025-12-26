@@ -1,0 +1,874 @@
+ARCHIVO: public\js\tasks.js
+================================================================================
+
+const Tasks = {
+    init() {
+        this.renderView();
+        this.fetchTasks();
+    },
+
+    tasks: [],
+    subtasks: {}, // Store subtasks per task
+    comments: {}, // Store comments per task
+
+    async fetchTasks() {
+        try {
+            const [tasksRes, projectsRes] = await Promise.all([
+                fetch('/api/tareas'),
+                fetch('/api/proyectos')
+            ]);
+            this.tasks = await tasksRes.json();
+            const projects = await projectsRes.json();
+
+            this.renderKanban(this.tasks);
+            this.populateProjectFilter(projects);
+        } catch (e) {
+            UI.notify('Error al cargar tareas', 'error');
+        }
+    },
+
+    populateProjectFilter(projects) {
+        const select = document.getElementById('filter-project');
+        if (!select) return;
+
+        let html = '<option value="">Todos los Proyectos</option>';
+        projects.forEach(p => {
+            html += `<option value="${p.id}">${p.nombre}</option>`;
+        });
+        select.innerHTML = html;
+    },
+
+    handleFilter() {
+        const search = document.getElementById('task-search').value.toLowerCase();
+        const priority = document.getElementById('filter-priority').value;
+        const project = document.getElementById('filter-project').value;
+
+        const filtered = this.tasks.filter(t => {
+            const matchesSearch = t.nombre.toLowerCase().includes(search) || (t.descripcion || '').toLowerCase().includes(search);
+            const matchesPriority = !priority || t.prioridad === priority;
+            const matchesProject = !project || t.proyecto_id == project;
+            return matchesSearch && matchesPriority && matchesProject;
+        });
+
+        this.renderKanban(filtered);
+    },
+
+    renderView() {
+        const container = document.getElementById('module-content');
+        container.innerHTML = `
+            ${UI.renderHeader('TAREAS', {
+            hideSearch: true,
+            moduleTitle: 'Gestión de Tareas',
+            description: 'Organiza tareas con subtareas, comentarios y archivos adjuntos.',
+            actionButton: `<button class="btn btn-primary" onclick="Tasks.showCreateModal()">
+                    <i class="fa-solid fa-plus"></i> Nueva Tarea
+                </button>`
+        })}
+
+            <!-- FILTERS BAR -->
+            <div class="filters-bar" style="background:white; padding:15px 20px; border-radius:12px; margin-top:20px; display:flex; gap:15px; align-items:center; box-shadow:0 2px 10px rgba(0,0,0,0.03);">
+                <div style="flex:1; position:relative;">
+                    <i class="fa-solid fa-magnifying-glass" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#94a3b8;"></i>
+                    <input type="text" id="task-search" class="form-control" placeholder="Buscar tarea..." style="padding-left:35px;" oninput="Tasks.handleFilter()">
+                </div>
+                <select id="filter-priority" class="form-select" style="width:150px;" onchange="Tasks.handleFilter()">
+                    <option value="">Todas las Prioridades</option>
+                    <option value="alta">Alta</option>
+                    <option value="media">Media</option>
+                    <option value="baja">Baja</option>
+                </select>
+                <select id="filter-project" class="form-select" style="width:200px;" onchange="Tasks.handleFilter()">
+                    <option value="">Todos los Proyectos</option>
+                    <!-- Dinámico -->
+                </select>
+            </div>
+
+            <div class="kanban-board" id="tasks-kanban" style="display:flex; gap:20px; margin-top:25px; overflow-x:auto; padding-bottom:15px;"></div>
+        `;
+        // Initialize quotes
+        if (window.MotivationalQuotes) {
+            setTimeout(() => window.MotivationalQuotes.init(), 100);
+        }
+    },
+
+    renderKanban(tasks) {
+        const kanban = document.getElementById('tasks-kanban');
+        const columns = [
+            { id: 'pendiente', title: 'Pendientes', color: '#f59e0b' },
+            { id: 'en_progreso', title: 'En Progreso', color: '#3b82f6' },
+            { id: 'completada', title: 'Completadas', color: '#10b981' }
+        ];
+
+        kanban.innerHTML = columns.map(col => {
+            const colTasks = tasks.filter(t => (t.estado || 'pendiente') === col.id);
+            return `
+                <div class="kanban-column" data-status="${col.id}" style="flex:1; min-width:320px; background:#f8fafc; border-radius:16px; padding:20px;">
+                    <div class="column-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                        <h3 style="margin:0; font-size:1rem; display:flex; align-items:center; gap:10px;">
+                            <span style="width:12px; height:12px; background:${col.color}; border-radius:50%; display:block;"></span>
+                            ${col.title}
+                        </h3>
+                        <span class="count badge badge-info" style="font-size:0.75rem;">${colTasks.length}</span>
+                    </div>
+                    <div class="column-tasks" data-column="${col.id}" style="display:flex; flex-direction:column; gap:12px; min-height:400px;">
+                        ${colTasks.map(task => this.renderTaskCard(task)).join('')}
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        // Initialize Sortable for drag-and-drop
+        document.querySelectorAll('.column-tasks').forEach(column => {
+            new Sortable(column, {
+                group: 'tasks',
+                animation: 200,
+                ghostClass: 'task-ghost',
+                onEnd: (evt) => this.handleTaskMove(evt)
+            });
+        });
+    },
+
+    renderTaskCard(task) {
+        const priority = task.prioridad || 'media';
+        const priorityColors = { alta: '#ef4444', media: '#f59e0b', baja: '#94a3b8' };
+        const subtaskCount = (this.subtasks[task.id] || []).length;
+        const completedSubtasks = (this.subtasks[task.id] || []).filter(s => s.completed).length;
+        const progress = subtaskCount > 0 ? Math.round((completedSubtasks / subtaskCount) * 100) : 0;
+
+        return `
+            <div class="task-card" data-task-id="${task.id}" onclick="Tasks.showDetails('${task.id}')" style="background:white; padding:16px; border-radius:12px; border-left:4px solid ${priorityColors[priority]}; cursor:pointer; transition:0.2s; box-shadow:0 2px 8px rgba(0,0,0,0.05);">
+                <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:10px;">
+                    <h4 style="margin:0; font-size:0.95rem; flex:1;">${task.nombre}</h4>
+                    <span class="priority-badge" style="padding:3px 8px; border-radius:6px; font-size:0.7rem; font-weight:700; background:${priorityColors[priority]}20; color:${priorityColors[priority]};">
+                        ${priority.toUpperCase()}
+                    </span>
+                </div>
+                
+                ${task.descripcion ? `<p style="margin:0 0 12px 0; font-size:0.85rem; color:var(--text-secondary);">${task.descripcion.substring(0, 80)}${task.descripcion.length > 80 ? '...' : ''}</p>` : ''}
+                
+                ${subtaskCount > 0 ? `
+                    <div class="subtask-progress" style="margin-bottom:12px;">
+                        <div style="display:flex; justify-content:space-between; font-size:0.75rem; margin-bottom:4px;">
+                            <span>Subtareas</span>
+                            <span style="font-weight:700;">${completedSubtasks}/${subtaskCount}</span>
+                        </div>
+                        <div style="height:6px; background:#e2e8f0; border-radius:3px; overflow:hidden;">
+                            <div style="height:100%; width:${progress}%; background:var(--gradient-primary); transition:0.3s;"></div>
+                        </div>
+                    </div>
+                ` : ''}
+
+                <div class="task-meta" style="display:flex; gap:12px; font-size:0.8rem; color:var(--text-secondary);">
+                    ${task.fecha_limite ? `
+                        <span style="display:flex; align-items:center; gap:4px;">
+                            <i class="fa-regular fa-calendar"></i>
+                            ${new Date(task.fecha_limite).toLocaleDateString()}
+                        </span>
+                    ` : ''}
+                    <span style="display:flex; align-items:center; gap:4px;">
+                        <i class="fa-regular fa-comment"></i>
+                        ${(this.comments[task.id] || []).length}
+                    </span>
+                    ${task.asignado_a ? `
+                        <div class="mini-avatar" style="width:22px; height:22px; border-radius:50%; background:var(--gradient-primary); color:white; display:flex; align-items:center; justify-content:center; font-size:0.7rem; font-weight:700;">
+                            ${task.asignado_nombre ? task.asignado_nombre.charAt(0).toUpperCase() : 'A'}
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+    },
+
+    async handleTaskMove(evt) {
+        const taskId = evt.item.dataset.taskId;
+        const newColumn = evt.to.dataset.column;
+
+        if (newColumn === 'completada') {
+            try {
+                const res = await fetch(`/api/tareas/${taskId}/dependencias`);
+                const blockers = await res.json();
+                const activeBlockers = blockers.filter(b => (b.estado || b.estatus) !== 'completada');
+
+                if (activeBlockers.length > 0) {
+                    UI.notify(`❌ Tarea bloqueada por: ${activeBlockers[0].nombre}`, 'error');
+                    this.fetchTasks(); // Revert card position
+                    return;
+                }
+            } catch (e) { }
+        }
+
+        try {
+            await fetch(`/api/tareas/${taskId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ estado: newColumn })
+            });
+            UI.notify('Tarea actualizada', 'success');
+            this.fetchTasks();
+        } catch (e) {
+            UI.notify('Error al mover tarea', 'error');
+        }
+    },
+
+    async showDetails(taskId) {
+        const task = this.tasks.find(t => t.id == taskId);
+        if (!task) return;
+
+        const subtasks = this.subtasks[taskId] || [];
+        const comments = this.comments[taskId] || [];
+
+        const html = `
+            <div class="task-detail-container">
+                <div class="tabs-header">
+                    <button class="tab-btn active" onclick="UI.tabs.switch(this, 'tab-overview')">General</button>
+                    <button class="tab-btn" onclick="UI.tabs.switch(this, 'tab-subtasks')">Subtareas (${subtasks.length})</button>
+                    <button class="tab-btn" onclick="UI.tabs.switch(this, 'tab-comments')">Comentarios (${comments.length})</button>
+                    <button class="tab-btn" onclick="UI.tabs.switch(this, 'tab-files')">Archivos</button>
+                    <button class="tab-btn" onclick="UI.tabs.switch(this, 'tab-dependencies')">Dependencias</button>
+                </div>
+
+                <!-- TAB 1: GENERAL -->
+                <div id="tab-overview" class="tab-content active">
+                    <div style="padding:20px; background:#f8fafc; border-radius:12px; margin-bottom:20px;">
+                        <h2 style="margin:0 0 10px 0;">${task.nombre}</h2>
+                        <p style="margin:0; color:var(--text-secondary);">${task.descripcion || 'Sin descripción'}</p>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:15px;">
+                        <div class="info-box" style="padding:15px; background:white; border-radius:12px; border:1px solid #e2e8f0;">
+                            <small style="display:block; color:var(--text-secondary); margin-bottom:5px;">Prioridad</small>
+                            <strong style="text-transform:uppercase;">${task.prioridad || 'MEDIA'}</strong>
+                        </div>
+                        <div class="info-box" style="padding:15px; background:white; border-radius:12px; border:1px solid #e2e8f0;">
+                            <small style="display:block; color:var(--text-secondary); margin-bottom:5px;">Fecha Límite</small>
+                            <strong>${task.fecha_limite ? new Date(task.fecha_limite).toLocaleDateString() : 'No definida'}</strong>
+                        </div>
+                        <div class="info-box" style="padding:15px; background:white; border-radius:12px; border:1px solid #e2e8f0;">
+                            <small style="display:block; color:var(--text-secondary); margin-bottom:5px;">Estado</small>
+                            <strong style="text-transform:uppercase;">${(task.estado || 'pendiente').replace('_', ' ')}</strong>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-secondary mt-3" onclick="Tasks.editTask('${taskId}')">
+                        <i class="fa-solid fa-pen"></i> Editar Tarea
+                    </button>
+                </div>
+
+                <!-- TAB 2: SUBTASKS -->
+                <div id="tab-subtasks" class="tab-content">
+                    <div style="margin-bottom:20px;">
+                        <div style="display:flex; gap:10px;">
+                            <input type="text" id="new-subtask-input" class="form-control" placeholder="Nueva subtarea..." onkeypress="if(event.key==='Enter') Tasks.addSubtask('${taskId}')">
+                            <button class="btn btn-primary" onclick="Tasks.addSubtask('${taskId}')">
+                                <i class="fa-solid fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="subtasks-list-${taskId}" style="display:flex; flex-direction:column; gap:10px;">
+                        ${subtasks.length > 0 ? subtasks.map((sub, idx) => `
+                            <div class="subtask-item" style="display:flex; align-items:center; gap:12px; padding:12px; background:${sub.completed ? '#f0fdf4' : '#f8fafc'}; border-radius:10px; border:1px solid ${sub.completed ? '#86efac' : '#e2e8f0'};">
+                                <input type="checkbox" ${sub.completed ? 'checked' : ''} onchange="Tasks.toggleSubtask('${taskId}', ${idx})" style="width:20px; height:20px; cursor:pointer;">
+                                <span style="flex:1; text-decoration:${sub.completed ? 'line-through' : 'none'}; color:${sub.completed ? '#94a3b8' : 'inherit'};">${sub.text}</span>
+                                <button class="btn btn-danger btn-sm" onclick="Tasks.deleteSubtask('${taskId}', ${idx})">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </div>
+                        `).join('') : '<p style="text-align:center; color:var(--text-secondary); padding:40px;">No hay subtareas aún</p>'}
+                    </div>
+                </div>
+
+                <!-- TAB 3: COMMENTS -->
+                <div id="tab-comments" class="tab-content">
+                    <div style="margin-bottom:25px; padding:20px; background:#f8fafc; border-radius:12px;">
+                        <textarea id="new-comment-input" class="form-control" rows="3" placeholder="Escribe un comentario..."></textarea>
+                        <button class="btn btn-primary mt-2" onclick="Tasks.addComment('${taskId}')">
+                            <i class="fa-solid fa-paper-plane"></i> Publicar Comentario
+                        </button>
+                    </div>
+
+                    <div id="comments-list-${taskId}" style="display:flex; flex-direction:column; gap:15px;">
+                        ${comments.length > 0 ? comments.map((comment, idx) => `
+                            <div class="comment-item" style="display:flex; gap:12px;">
+                                <div class="avatar" style="width:40px; height:40px; border-radius:50%; background:var(--gradient-primary); color:white; display:flex; align-items:center; justify-content:center; font-weight:700; flex-shrink:0;">
+                                    ${comment.author ? comment.author.charAt(0).toUpperCase() : 'U'}
+                                </div>
+                                <div style="flex:1; background:#f8fafc; padding:15px; border-radius:12px;">
+                                    <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                                        <strong style="font-size:0.9rem;">${comment.author || 'Usuario'}</strong>
+                                        <small style="color:var(--text-secondary);">${new Date(comment.date).toLocaleString()}</small>
+                                    </div>
+                                    <p style="margin:0; font-size:0.9rem;">${comment.text}</p>
+                                    <button class="btn btn-danger btn-sm mt-2" onclick="Tasks.deleteComment('${taskId}', ${idx})">
+                                        <i class="fa-solid fa-trash"></i> Eliminar
+                                    </button>
+                                </div>
+                            </div>
+                        `).join('') : '<p style="text-align:center; color:var(--text-secondary); padding:40px;">No hay comentarios aún</p>'}
+                    </div>
+                </div>
+
+                <!-- TAB 4: FILES -->
+                <div id="tab-files" class="tab-content">
+                    <div class="file-upload-zone" onclick="document.getElementById('task-file-input-${taskId}').click()" style="text-align:center; padding:3rem; border:2px dashed #cbd5e1; border-radius:12px; cursor:pointer; margin-bottom:20px;">
+                        <i class="fa-solid fa-cloud-arrow-up" style="font-size:2.5rem; color:var(--primary-medium); margin-bottom:1rem; display:block;"></i>
+                        <p style="margin:0; font-weight:600;">Subir archivos adjuntos</p>
+                        <p style="margin:5px 0 0 0; font-size:0.8rem; color:var(--text-secondary);">Click para seleccionar archivos</p>
+                        <input type="file" id="task-file-input-${taskId}" style="display:none;" multiple onchange="Tasks.handleFileUpload(event, '${taskId}')">
+                    </div>
+                    <div id="task-files-list-${taskId}" style="display:flex; flex-direction:column; gap:10px;">
+                        <p class="text-muted text-center" style="padding:20px;">Cargando archivos...</p>
+                    </div>
+                </div>
+
+                <!-- TAB 5: DEPENDENCIES -->
+                <div id="tab-dependencies" class="tab-content">
+                    <div style="margin-bottom:20px;">
+                        <label style="display:block; font-size:0.85rem; margin-bottom:8px;">Agregar tarea que bloquea a esta:</label>
+                        <div style="display:flex; gap:10px;">
+                            <select id="dependency-picker-${taskId}" class="form-select">
+                                <option value="">-- Seleccionar Tarea --</option>
+                            </select>
+                            <button class="btn btn-primary" onclick="Tasks.addDependency('${taskId}')">
+                                <i class="fa-solid fa-lock"></i> Bloquear
+                            </button>
+                        </div>
+                    </div>
+                    <div id="dependencies-list-${taskId}">
+                        <p class="text-muted text-center" style="padding:20px;">Cargando dependencias...</p>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        UI.modal.show(task.nombre, html, `
+            <button class="btn btn-secondary" onclick="UI.modal.hide()">Cerrar</button>
+        `, true);
+
+        // Fetch additional data
+        this.fetchTaskFiles(taskId);
+        this.fetchTaskDependencies(taskId);
+        this.populateDependencyPicker(taskId);
+    },
+
+    addSubtask(taskId) {
+        const input = document.getElementById('new-subtask-input');
+        const text = input.value.trim();
+        if (!text) return UI.notify('Escribe una subtarea', 'warning');
+
+        if (!this.subtasks[taskId]) this.subtasks[taskId] = [];
+        this.subtasks[taskId].push({ text, completed: false, date: new Date() });
+
+        UI.notify('✅ Subtarea agregada', 'success');
+        this.showDetails(taskId);
+    },
+
+    toggleSubtask(taskId, index) {
+        this.subtasks[taskId][index].completed = !this.subtasks[taskId][index].completed;
+        this.showDetails(taskId);
+        this.fetchTasks(); // Refresh kanban to update progress
+    },
+
+    deleteSubtask(taskId, index) {
+        if (confirm('¿Eliminar esta subtarea?')) {
+            this.subtasks[taskId].splice(index, 1);
+            UI.notify('Subtarea eliminada', 'success');
+            this.showDetails(taskId);
+            this.fetchTasks();
+        }
+    },
+
+    addComment(taskId) {
+        const input = document.getElementById('new-comment-input');
+        const text = input.value.trim();
+        if (!text) return UI.notify('Escribe un comentario', 'warning');
+
+        if (!this.comments[taskId]) this.comments[taskId] = [];
+        this.comments[taskId].push({
+            text,
+            author: 'Usuario Actual', // TODO: Get from auth
+            date: new Date()
+        });
+
+        UI.notify('✅ Comentario publicado', 'success');
+        this.showDetails(taskId);
+    },
+
+    async fetchTaskFiles(taskId) {
+        try {
+            const res = await fetch(`/api/tareas/${taskId}/archivos`);
+            const files = await res.json();
+            this.renderTaskFiles(taskId, files);
+        } catch (e) {
+            console.error('Error fetching task files:', e);
+        }
+    },
+
+    renderTaskFiles(taskId, files) {
+        const container = document.getElementById(`task-files-list-${taskId}`);
+        if (!container) return;
+
+        if (!files || files.length === 0) {
+            container.innerHTML = '<p class="text-muted text-center" style="padding:20px;">No hay archivos adjuntos aún.</p>';
+            return;
+        }
+
+        container.innerHTML = files.map(file => `
+            <div class="file-item" style="display:flex; justify-content:space-between; align-items:center; padding:12px; background:#f8fafc; border-radius:10px; border:1px solid #e2e8f0;">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <i class="fa-solid ${this.getFileIcon(file.tipo)}" style="font-size:1.2rem; color:var(--primary-medium);"></i>
+                    <div>
+                        <strong style="display:block; font-size:0.9rem;">${file.nombre}</strong>
+                        <small style="color:var(--text-secondary);">${(file.tamano / 1024).toFixed(2)} KB · ${new Date(file.fecha_subida).toLocaleDateString()}</small>
+                    </div>
+                </div>
+                <div style="display:flex; gap:8px;">
+                    <a href="${file.url}" target="_blank" class="btn btn-secondary btn-sm">
+                        <i class="fa-solid fa-download"></i>
+                    </a>
+                    <button class="btn btn-danger btn-sm" onclick="Tasks.deleteTaskFile('${taskId}', '${file.id}')">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        `).join('');
+    },
+
+    getFileIcon(tipo) {
+        if (tipo.includes('pdf')) return 'fa-file-pdf';
+        if (tipo.includes('image')) return 'fa-file-image';
+        if (tipo.includes('word') || tipo.includes('document')) return 'fa-file-word';
+        if (tipo.includes('excel') || tipo.includes('spreadsheet')) return 'fa-file-excel';
+        if (tipo.includes('zip') || tipo.includes('rar')) return 'fa-file-zipper';
+        return 'fa-file';
+    },
+
+    async handleFileUpload(event, taskId) {
+        const files = event.target.files;
+        if (!files || files.length === 0) return;
+
+        const formData = new FormData();
+        for (let i = 0; i < files.length; i++) {
+            formData.append('file', files[i]);
+
+            try {
+                const res = await fetch(`/api/tareas/${taskId}/archivos`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (res.ok) {
+                    UI.notify(`✅ ${files[i].name} subido`, 'success');
+                } else {
+                    UI.notify(`Error al subir ${files[i].name}`, 'error');
+                }
+            } catch (e) {
+                UI.notify('Error de conexión', 'error');
+            }
+        }
+
+        this.fetchTaskFiles(taskId);
+        event.target.value = ''; // Reset input
+    },
+
+    async deleteTaskFile(taskId, archivoId) {
+        if (!confirm('¿Eliminar este archivo?')) return;
+        try {
+            await fetch(`/api/tareas/${taskId}/archivos/${archivoId}`, { method: 'DELETE' });
+            UI.notify('Archivo eliminado', 'success');
+            this.fetchTaskFiles(taskId);
+        } catch (e) {
+            UI.notify('Error al eliminar', 'error');
+        }
+    },
+
+    deleteComment(taskId, index) {
+        if (confirm('¿Eliminar este comentario?')) {
+            this.comments[taskId].splice(index, 1);
+            UI.notify('Comentario eliminado', 'success');
+            this.showDetails(taskId);
+        }
+    },
+
+    showCreateModal() {
+        this.wizardStep = 1;
+        this.wizardData = {};
+        this.wizardData.subtasks_initial = [];
+        this.renderTaskWizard();
+    },
+
+    async renderTaskWizard() {
+        const step = this.wizardStep;
+
+        // Fetch projects and team if not loaded
+        if (step === 2 && !this.projectsList) {
+            try {
+                const [projectsRes, teamRes] = await Promise.all([
+                    fetch('/api/proyectos'),
+                    fetch('/api/equipo')
+                ]);
+                this.projectsList = await projectsRes.json();
+                this.teamList = await teamRes.json();
+            } catch (e) {
+                this.projectsList = [];
+                this.teamList = [];
+            }
+        }
+
+        const stepIndicator = `
+            <div style="display:flex; justify-content:center; align-items:center; gap:15px; margin-bottom:30px;">
+                ${[1, 2, 3].map(i => `
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <div style="width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; transition:all 0.3s; ${i === step ? 'background:var(--gradient-primary); color:white; box-shadow:0 4px 12px rgba(147,51,234,0.3);' : i < step ? 'background:#10b981; color:white;' : 'background:#e2e8f0; color:#94a3b8;'}">
+                            ${i < step ? '<i class="fa-solid fa-check"></i>' : i}
+                        </div>
+                        ${i < 3 ? `<div style="width:50px; height:2px; background:${i < step ? '#10b981' : '#e2e8f0'};"></div>` : ''}
+                    </div>
+                `).join('')}
+            </div>
+        `;
+
+        let stepContent = '';
+        let stepTitle = '';
+
+        if (step === 1) {
+            stepTitle = '📝 Información Básica';
+            stepContent = `
+                <div class="form-group">
+                    <label>Nombre de la Tarea <span style="color:var(--error);">*</span></label>
+                    <input type="text" id="task-nombre" class="form-control" value="${this.wizardData.nombre || ''}" required placeholder="Ej: Revisar propuesta del cliente">
+                </div>
+
+                <div class="form-group">
+                    <label>Descripción</label>
+                    <textarea id="task-descripcion" class="form-control" rows="3" placeholder="Detalles adicionales...">${this.wizardData.descripcion || ''}</textarea>
+                </div>
+
+                <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:15px;">
+                    <div class="form-group">
+                        <label>Prioridad</label>
+                        <select id="task-prioridad" class="form-select">
+                            <option value="baja" ${this.wizardData.prioridad === 'baja' ? 'selected' : ''}>🟢 Baja</option>
+                            <option value="media" ${!this.wizardData.prioridad || this.wizardData.prioridad === 'media' ? 'selected' : ''}>🟡 Media</option>
+                            <option value="alta" ${this.wizardData.prioridad === 'alta' ? 'selected' : ''}>🔴 Alta</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Fecha Límite</label>
+                        <input type="date" id="task-fecha" class="form-control" value="${this.wizardData.fecha_limite || ''}">
+                    </div>
+                </div>
+            `;
+        } else if (step === 2) {
+            stepTitle = '👥 Asignación';
+            const projectOptions = (this.projectsList || []).map(p =>
+                `<option value="${p.id}" ${this.wizardData.proyecto_id == p.id ? 'selected' : ''}>${p.nombre}</option>`
+            ).join('');
+
+            const teamOptions = (this.teamList || []).map(t =>
+                `<option value="${t.id}" ${this.wizardData.asignado_a == t.id ? 'selected' : ''}>${t.nombre} ${t.apellido} - ${t.puesto}</option>`
+            ).join('');
+
+            stepContent = `
+                <div class="form-group">
+                    <label>Proyecto <i class="fa-solid fa-info-circle" style="color:var(--text-secondary);" title="Opcional: vincula esta tarea a un proyecto"></i></label>
+                    <select id="task-proyecto" class="form-select">
+                        <option value="">Sin proyecto específico</option>
+                        ${projectOptions}
+                    </select>
+                    <small style="color:#64748b; font-size:0.75rem;">Permite filtrar tareas por proyecto y gestionar dependencias</small>
+                </div>
+
+                <div class="form-group">
+                    <label>Asignar a <i class="fa-solid fa-info-circle" style="color:var(--text-secondary);" title="Opcional: asigna un responsable"></i></label>
+                    <select id="task-asignado" class="form-select">
+                        <option value="">Sin asignar</option>
+                        ${teamOptions}
+                    </select>
+                    <small style="color:#64748b; font-size:0.75rem;">El responsable recibirá la tarea en su lista personal</small>
+                </div>
+
+                <div style="background:#f8fafc; padding:20px; border-radius:12px; margin-top:20px; border-left:4px solid #3b82f6;">
+                    <h4 style="margin:0 0 10px 0; font-size:0.95rem; color:var(--primary-medium);"><i class="fa-solid fa-lightbulb"></i> Tip</h4>
+                    <p style="margin:0; font-size:0.85rem; color:var(--text-secondary);">
+                        Asignar proyecto y responsable facilita la organización y permite usar el sistema de dependencias entre tareas.
+                    </p>
+                </div>
+            `;
+        } else if (step === 3) {
+            stepTitle = '⚡ Setup Inicial';
+            stepContent = `
+                <div class="form-group">
+                    <label>Subtareas Iniciales <small style="color:var(--text-secondary);">(Opcional)</small></label>
+                    <div style="background:#f8fafc; padding:15px; border-radius:12px; margin-bottom:15px;">
+                        <div style="display:flex; gap:10px; margin-bottom:10px;">
+                            <input type="text" id="quick-subtask-input" class="form-control" placeholder="Ej: Revisar documento, Enviar email...">
+                            <button type="button" class="btn btn-primary btn-sm" onclick="Tasks.addWizardSubtask()">
+                                <i class="fa-solid fa-plus"></i>
+                            </button>
+                        </div>
+                        <small style="color:#64748b; font-size:0.75rem;">Presiona Enter o click + para agregar</small>
+                    </div>
+                    
+                    <div id="wizard-subtasks-list" style="display:flex; flex-direction:column; gap:8px;">
+                        ${this.wizardData.subtasks_initial.map((sub, idx) => `
+                            <div style="display:flex; align-items:center; gap:10px; padding:10px; background:white; border-radius:8px; border:1px solid #e2e8f0;">
+                                <i class="fa-regular fa-square-check" style="color:var(--primary-medium);"></i>
+                                <span style="flex:1;">${sub}</span>
+                                <button type="button" class="btn btn-danger btn-sm" onclick="Tasks.removeWizardSubtask(${idx})">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </div>
+                        `).join('') || '<p style="text-align:center; color:var(--text-secondary); padding:20px; font-size:0.85rem;">No hay subtareas. Puedes agregarlas después.</p>'}
+                    </div>
+                </div>
+
+                <div style="background:#f8fafc; padding:20px; border-radius:12px; margin-top:25px; border-left:4px solid var(--primary-medium);">
+                    <h4 style="margin:0 0 15px 0; color:var(--primary-medium);"><i class="fa-solid fa-clipboard-check"></i> Resumen de la Tarea</h4>
+                    <div style="display:grid; gap:10px; font-size:0.9rem;">
+                        <div><strong>Nombre:</strong> ${this.wizardData.nombre || 'No especificado'}</div>
+                        <div><strong>Prioridad:</strong> <span style="text-transform:uppercase;">${this.wizardData.prioridad || 'MEDIA'}</span></div>
+                        <div><strong>Fecha límite:</strong> ${this.wizardData.fecha_limite ? new Date(this.wizardData.fecha_limite).toLocaleDateString() : 'No definida'}</div>
+                        <div><strong>Proyecto:</strong> ${this.wizardData.proyecto_id ? this.projectsList?.find(p => p.id == this.wizardData.proyecto_id)?.nombre : 'Sin proyecto'}</div>
+                        <div><strong>Asignado a:</strong> ${this.wizardData.asignado_a ? this.teamList?.find(t => t.id == this.wizardData.asignado_a)?.nombre : 'Sin asignar'}</div>
+                        <div><strong>Subtareas:</strong> ${this.wizardData.subtasks_initial.length || 0}</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        const html = `
+            ${stepIndicator}
+            <h3 style="margin:0 0 20px 0; text-align:center; color:var(--primary-medium);">${stepTitle}</h3>
+            <form id="task-wizard-form" style="min-height:300px;">
+                ${stepContent}
+            </form>
+        `;
+
+        const buttons = step === 3
+            ? `
+                <button class="btn btn-secondary" onclick="Tasks.taskWizardPrev()"><i class="fa-solid fa-arrow-left"></i> Atrás</button>
+                <button class="btn btn-success" onclick="Tasks.completeTaskWizard()"><i class="fa-solid fa-check"></i> Crear Tarea</button>
+              `
+            : step === 1
+                ? `
+                <button class="btn btn-secondary" onclick="UI.modal.hide()">Cancelar</button>
+                <button class="btn btn-primary" onclick="Tasks.taskWizardNext()">Siguiente <i class="fa-solid fa-arrow-right"></i></button>
+              `
+                : `
+                <button class="btn btn-secondary" onclick="Tasks.taskWizardPrev()"><i class="fa-solid fa-arrow-left"></i> Atrás</button>
+                <button class="btn btn-primary" onclick="Tasks.taskWizardNext()">Siguiente <i class="fa-solid fa-arrow-right"></i></button>
+              `;
+
+        UI.modal.show('Nueva Tarea', html, buttons, true);
+
+        // Setup enter key for subtasks
+        if (step === 3) {
+            const input = document.getElementById('quick-subtask-input');
+            if (input) {
+                input.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        this.addWizardSubtask();
+                    }
+                });
+            }
+        }
+    },
+
+    taskWizardNext() {
+        this.saveTaskWizardStep();
+
+        if (this.wizardStep === 1) {
+            if (!this.wizardData.nombre) {
+                UI.notify('El nombre de la tarea es obligatorio', 'error');
+                return;
+            }
+        }
+
+        this.wizardStep++;
+        this.renderTaskWizard();
+    },
+
+    taskWizardPrev() {
+        this.saveTaskWizardStep();
+        this.wizardStep--;
+        this.renderTaskWizard();
+    },
+
+    saveTaskWizardStep() {
+        const step = this.wizardStep;
+
+        if (step === 1) {
+            this.wizardData.nombre = document.getElementById('task-nombre')?.value || '';
+            this.wizardData.descripcion = document.getElementById('task-descripcion')?.value || '';
+            this.wizardData.prioridad = document.getElementById('task-prioridad')?.value || 'media';
+            this.wizardData.fecha_limite = document.getElementById('task-fecha')?.value || '';
+        } else if (step === 2) {
+            this.wizardData.proyecto_id = document.getElementById('task-proyecto')?.value || '';
+            this.wizardData.asignado_a = document.getElementById('task-asignado')?.value || '';
+        }
+    },
+
+    addWizardSubtask() {
+        const input = document.getElementById('quick-subtask-input');
+        const text = input?.value.trim();
+        if (!text) return;
+
+        this.wizardData.subtasks_initial.push(text);
+        input.value = '';
+        this.renderTaskWizard();
+    },
+
+    removeWizardSubtask(index) {
+        this.wizardData.subtasks_initial.splice(index, 1);
+        this.renderTaskWizard();
+    },
+
+    async completeTaskWizard() {
+        const data = {
+            nombre: this.wizardData.nombre,
+            descripcion: this.wizardData.descripcion,
+            prioridad: this.wizardData.prioridad || 'media',
+            fecha_limite: this.wizardData.fecha_limite,
+            proyecto_id: this.wizardData.proyecto_id || null,
+            asignado_a: this.wizardData.asignado_a || null,
+            estado: 'pendiente'
+        };
+
+        try {
+            const res = await fetch('/api/tareas', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            if (res.ok) {
+                const newTask = await res.json();
+
+                // Add initial subtasks if any
+                if (this.wizardData.subtasks_initial.length > 0) {
+                    this.subtasks[newTask.id] = this.wizardData.subtasks_initial.map(text => ({
+                        text,
+                        completed: false,
+                        date: new Date()
+                    }));
+                }
+
+                UI.notify('✅ Tarea creada exitosamente', 'success');
+                UI.modal.hide();
+                this.fetchTasks();
+            } else {
+                UI.notify('Error al crear tarea', 'error');
+            }
+        } catch (e) {
+            UI.notify('Error de conexión', 'error');
+        }
+    },
+
+    async handleCreate() {
+        const form = document.getElementById('create-task-form');
+        if (!form.reportValidity()) return;
+
+        const data = Object.fromEntries(new FormData(form).entries());
+        data.estado = 'pendiente';
+
+        try {
+            const res = await fetch('/api/tareas', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            if (res.ok) {
+                UI.notify('✅ Tarea creada', 'success');
+                UI.modal.hide();
+                this.fetchTasks();
+            } else {
+                UI.notify('Error al crear tarea', 'error');
+            }
+        } catch (e) {
+            UI.notify('Error de conexión', 'error');
+        }
+    },
+
+    editTask(taskId) {
+        UI.notify('Edición de tarea próximamente', 'info');
+    },
+    async fetchTaskDependencies(taskId) {
+        try {
+            const res = await fetch(`/api/tareas/${taskId}/dependencias`);
+            const dependencies = await res.json();
+            this.renderTaskDependencies(taskId, dependencies);
+        } catch (e) { }
+    },
+
+    renderTaskDependencies(taskId, dependencies) {
+        const container = document.getElementById(`dependencies-list-${taskId}`);
+        if (!container) return;
+
+        if (!dependencies || dependencies.length === 0) {
+            container.innerHTML = '<p class="text-muted text-center" style="padding:20px;">No tiene tareas bloqueadoras.</p>';
+            return;
+        }
+
+        container.innerHTML = dependencies.map(dep => `
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; background:#f8fafc; border-radius:10px; border:1px solid #e2e8f0; margin-bottom:10px;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <i class="fa-solid fa-lock" style="color:${(dep.estado || dep.estatus) === 'completada' ? 'var(--success)' : 'var(--error)'}"></i>
+                    <div>
+                        <strong style="display:block; font-size:0.9rem;">${dep.nombre}</strong>
+                        <small style="color:var(--text-secondary);">Estado: ${dep.estado || 'Pendiente'}</small>
+                    </div>
+                </div>
+                <button class="btn btn-danger btn-sm" onclick="Tasks.deleteDependency('${taskId}', '${dep.id}')">
+                    <i class="fa-solid fa-trash"></i>
+                </button>
+            </div>
+        `).join('');
+    },
+
+    populateDependencyPicker(taskId) {
+        const picker = document.getElementById(`dependency-picker-${taskId}`);
+        if (!picker) return;
+
+        // Populate with other tasks from the same project
+        const task = this.tasks.find(t => t.id == taskId);
+        const otherTasks = this.tasks.filter(t => t.id != taskId && t.proyecto_id === task.proyecto_id);
+
+        picker.innerHTML = '<option value="">-- Seleccionar Tarea --</option>' +
+            otherTasks.map(t => `<option value="${t.id}">${t.nombre}</option>`).join('');
+    },
+
+    async addDependency(taskId) {
+        const depende_de_id = document.getElementById(`dependency-picker-${taskId}`).value;
+        if (!depende_de_id) return UI.notify('Selecciona una tarea', 'warning');
+
+        try {
+            const res = await fetch(`/api/tareas/${taskId}/dependencias`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ depende_de_id })
+            });
+
+            if (res.ok) {
+                UI.notify('✅ Dependencia agregada', 'success');
+                this.fetchTaskDependencies(taskId);
+            } else {
+                const data = await res.json();
+                UI.notify(data.error || 'Error al agregar', 'error');
+            }
+        } catch (e) { }
+    },
+
+    async deleteDependency(taskId, depende_de_id) {
+        if (!confirm('¿Eliminar esta dependencia?')) return;
+        try {
+            await fetch(`/api/tareas/${taskId}/dependencias/${depende_de_id}`, { method: 'DELETE' });
+            UI.notify('Dependencia eliminada', 'success');
+            this.fetchTaskDependencies(taskId);
+        } catch (e) { }
+    }
+};
+
+window.Tasks = Tasks;

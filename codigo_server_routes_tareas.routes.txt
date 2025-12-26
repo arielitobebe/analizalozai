@@ -1,0 +1,52 @@
+ARCHIVO: server\routes\tareas.routes.js
+================================================================================
+
+const express = require('express');
+const router = express.Router();
+const db = require('../db');
+const { v4: uuidv4 } = require('uuid');
+
+// Get all tasks
+router.get('/', (req, res) => {
+    db.all(`SELECT t.*, p.nombre as proyecto_nombre, u.nombre as asignado_nombre 
+            FROM tareas t 
+            LEFT JOIN proyectos p ON t.proyecto_id = p.id 
+            LEFT JOIN usuarios_equipo u ON t.asignado_id = u.id 
+            ORDER BY t.fecha_creacion DESC`, (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows);
+    });
+});
+
+// Create task
+router.post('/', (req, res) => {
+    const { titulo, descripcion, prioridad, proyecto_id, asignado_id, estatus } = req.body;
+    const id = uuidv4();
+
+    const query = `INSERT INTO tareas (id, titulo, descripcion, prioridad, estatus, proyecto_id, asignado_id) 
+                   VALUES (?, ?, ?, ?, ?, ?, ?)`;
+
+    db.run(query, [
+        id, titulo, descripcion, prioridad || 'media',
+        estatus || 'pendiente', proyecto_id || null, asignado_id || null
+    ], function (err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.status(201).json({ id, message: 'Tarea creada' });
+    });
+});
+
+// Move task / Update status
+router.patch('/:id', (req, res) => {
+    const { id } = req.params;
+    const fields = Object.keys(req.body);
+    const values = Object.values(req.body);
+
+    const setClause = fields.map(f => `${f} = ?`).join(', ');
+
+    db.run(`UPDATE tareas SET ${setClause} WHERE id = ?`, [...values, id], function (err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ message: 'Tarea actualizada' });
+    });
+});
+
+module.exports = router;

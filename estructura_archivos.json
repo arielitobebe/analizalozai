@@ -1,0 +1,258 @@
+﻿[
+    {
+        "FullName":  "C:\\Users\\Aorus\\Desktop\\hermosura de novadex - RESPALDO 26DIC\\audit-report.json",
+        "Length":  3470
+    },
+    {
+        "FullName":  "C:\\Users\\Aorus\\Desktop\\hermosura de novadex - RESPALDO 26DIC\\audit-script.js",
+        "Length":  10936
+    },
+    {
+        "FullName":  "C:\\Users\\Aorus\\Desktop\\hermosura de novadex - RESPALDO 26DIC\\check-schema.js",
+        "Length":  1774
+    },
+    {
+        "FullName":  "C:\\Users\\Aorus\\Desktop\\hermosura de novadex - RESPALDO 26DIC\\clean-nebula.js",
+        "Length":  2210
+    },
+    {
+        "FullName":  "C:\\Users\\Aorus\\Desktop\\hermosura de novadex - RESPALDO 26DIC\\clear-nebula-db.js",
+        "Length":  1829
+    },
+    {
+        "FullName":  "C:\\Users\\Aorus\\Desktop\\hermosura de novadex - RESPALDO 26DIC\\debug-nebula.js",
+        "Length":  4906
+    },
+    {
+        "FullName":  "C:\\Users\\Aorus\\Desktop\\hermosura de novadex - RESPALDO 26DIC\\DIAGNOSTICO-NEBULA.md",
+        "Length":  1966
+    },
+    {
+        "FullName":  "C:\\Users\\Aorus\\Desktop\\hermosura de novadex - RESPALDO 26DIC\\ESPECIFICACIONES TÉCNICAS COMPLETAS NOVADEX.txt",
+        "Length":  83335
+    },
+    {
+        "FullName":  "C:\\Users\\Aorus\\Desktop\\hermosura de novadex - RESPALDO 26DIC\\fix-schema.js",
+        "Length":  1930
+    },
+    {
+        "FullName":  "C:\\Users\\Aorus\\Desktop\\hermosura de novadex - RESPALDO 26DIC\\INSTRUCCIONES-ARREGLO-NEBULA.txt",
+        "Length":  2775
+    },
+    {
+        "FullName":  "C:\\Users\\Aorus\\Desktop\\hermosura de novadex - RESPALDO 26DIC\\package-lock.json",
+        "Length":  172448
+    },
+    {
+        "FullName":  "C:\\Users\\Aorus\\Desktop\\hermosura de novadex - RESPALDO 26DIC\\package.json",
+        "Length":  674
+    },
+    {
+        "FullName":  "C:\\Users\\Aorus\\Desktop\\hermosura de novadex - RESPALDO 26DIC\\README.md",
+        "Length":  3330
+    },
+    {
+        "FullName":  "C:\\Users\\Aorus\\Desktop\\hermosura de novadex - RESPALDO 26DIC\\test-nebula-flow.js",
+        "Length":  3954
+    },
+    {
+        "FullName":  "C:\\Users\\Aorus\\Desktop\\hermosura de novadex - RESPALDO 26DIC\\test-scraper.js",
+        "Length":  1859
+    },
+    {
+        "FullName":  "C:\\Users\\Aorus\\Desktop\\hermosura de novadex - RESPALDO 26DIC\\public\\index.html",
+        "Length":  5550
+    },
+    {
+        "FullName":  "C:\\Users\\Aorus\\Desktop\\hermosura de novadex - RESPALDO 26DIC\\public\\css\\modules.css",
+        "Length":  14105
+    },
+    {
+        "FullName":  "C:\\Users\\Aorus\\Desktop\\hermosura de novadex - RESPALDO 26DIC\\public\\css\\styles.css",
+        "Length":  27346
+    },
+    {
+        "FullName":  "C:\\Users\\Aorus\\Desktop\\hermosura de novadex - RESPALDO 26DIC\\public\\js\\calendar.js",
+        "Length":  13263
+    },
+    {
+        "FullName":  "C:\\Users\\Aorus\\Desktop\\hermosura de novadex - RESPALDO 26DIC\\public\\js\\clients.js",
+        "Length":  80390
+    },
+    {
+        "FullName":  "C:\\Users\\Aorus\\Desktop\\hermosura de novadex - RESPALDO 26DIC\\public\\js\\community.js",
+        "Length":  6819
+    },
+    {
+        "FullName":  "C:\\Users\\Aorus\\Desktop\\hermosura de novadex - RESPALDO 26DIC\\public\\js\\dashboard.js",
+        "Length":  49758
+    },
+    {
+        "FullName":  "C:\\Users\\Aorus\\Desktop\\hermosura de novadex - RESPALDO 26DIC\\public\\js\\finance.js",
+        "Length":  27977
+    },
+    {
+        "FullName":  "C:\\Users\\Aorus\\Desktop\\hermosura de novadex - RESPALDO 26DIC\\public\\js\\leads.js",
+        "Length":  42698
+    },
+    {
+        "FullName":  "C:\\Users\\Aorus\\Desktop\\hermosura de novadex - RESPALDO 26DIC\\public\\js\\main.js",
+        "Length":  13491
+    },
+    {
+        "FullName":  "C:\\Users\\Aorus\\Desktop\\hermosura de novadex - RESPALDO 26DIC\\public\\js\\motivational-quotes.js",
+        "Length":  85221
+    },
+    {
+        "FullName":  "C:\\Users\\Aorus\\Desktop\\hermosura de novadex - RESPALDO 26DIC\\public\\js\\nebula.js",
+        "Length":  29714
+    },
+    {
+        "FullName":  "C:\\Users\\Aorus\\Desktop\\hermosura de novadex - RESPALDO 26DIC\\public\\js\\projects.js",
+        "Length":  49941
+    },
+    {
+        "FullName":  "C:\\Users\\Aorus\\Desktop\\hermosura de novadex - RESPALDO 26DIC\\public\\js\\quotes.js",
+        "Length":  24562
+    },
+    {
+        "FullName":  "C:\\Users\\Aorus\\Desktop\\hermosura de novadex - RESPALDO 26DIC\\public\\js\\reminders.js",
+        "Length":  11262
+    },
+    {
+        "FullName":  "C:\\Users\\Aorus\\Desktop\\hermosura de novadex - RESPALDO 26DIC\\public\\js\\sales.js",
+        "Length":  25363
+    },
+    {
+        "FullName":  "C:\\Users\\Aorus\\Desktop\\hermosura de novadex - RESPALDO 26DIC\\public\\js\\services.js",
+        "Length":  10815
+    },
+    {
+        "FullName":  "C:\\Users\\Aorus\\Desktop\\hermosura de novadex - RESPALDO 26DIC\\public\\js\\settings.js",
+        "Length":  20629
+    },
+    {
+        "FullName":  "C:\\Users\\Aorus\\Desktop\\hermosura de novadex - RESPALDO 26DIC\\public\\js\\tasks.js",
+        "Length":  44919
+    },
+    {
+        "FullName":  "C:\\Users\\Aorus\\Desktop\\hermosura de novadex - RESPALDO 26DIC\\public\\js\\team.js",
+        "Length":  39565
+    },
+    {
+        "FullName":  "C:\\Users\\Aorus\\Desktop\\hermosura de novadex - RESPALDO 26DIC\\public\\uploads\\fa88b6b7-7a3c-44df-a975-d21c00236cad.png",
+        "Length":  4135121
+    },
+    {
+        "FullName":  "C:\\Users\\Aorus\\Desktop\\hermosura de novadex - RESPALDO 26DIC\\server\\db.js",
+        "Length":  15101
+    },
+    {
+        "FullName":  "C:\\Users\\Aorus\\Desktop\\hermosura de novadex - RESPALDO 26DIC\\server\\index.js",
+        "Length":  2247
+    },
+    {
+        "FullName":  "C:\\Users\\Aorus\\Desktop\\hermosura de novadex - RESPALDO 26DIC\\server\\seed.js",
+        "Length":  15659
+    },
+    {
+        "FullName":  "C:\\Users\\Aorus\\Desktop\\hermosura de novadex - RESPALDO 26DIC\\server\\upload.js",
+        "Length":  1233
+    },
+    {
+        "FullName":  "C:\\Users\\Aorus\\Desktop\\hermosura de novadex - RESPALDO 26DIC\\server\\routes\\clientes-archivos.routes.js",
+        "Length":  1843
+    },
+    {
+        "FullName":  "C:\\Users\\Aorus\\Desktop\\hermosura de novadex - RESPALDO 26DIC\\server\\routes\\clientes-notas.routes.js",
+        "Length":  2072
+    },
+    {
+        "FullName":  "C:\\Users\\Aorus\\Desktop\\hermosura de novadex - RESPALDO 26DIC\\server\\routes\\clientes.routes.js",
+        "Length":  2466
+    },
+    {
+        "FullName":  "C:\\Users\\Aorus\\Desktop\\hermosura de novadex - RESPALDO 26DIC\\server\\routes\\community.routes.js",
+        "Length":  1044
+    },
+    {
+        "FullName":  "C:\\Users\\Aorus\\Desktop\\hermosura de novadex - RESPALDO 26DIC\\server\\routes\\config.routes.js",
+        "Length":  1721
+    },
+    {
+        "FullName":  "C:\\Users\\Aorus\\Desktop\\hermosura de novadex - RESPALDO 26DIC\\server\\routes\\cotizaciones.routes.js",
+        "Length":  4710
+    },
+    {
+        "FullName":  "C:\\Users\\Aorus\\Desktop\\hermosura de novadex - RESPALDO 26DIC\\server\\routes\\equipo.routes.js",
+        "Length":  2565
+    },
+    {
+        "FullName":  "C:\\Users\\Aorus\\Desktop\\hermosura de novadex - RESPALDO 26DIC\\server\\routes\\finanzas.routes.js",
+        "Length":  3421
+    },
+    {
+        "FullName":  "C:\\Users\\Aorus\\Desktop\\hermosura de novadex - RESPALDO 26DIC\\server\\routes\\leads-advanced.routes.js",
+        "Length":  2939
+    },
+    {
+        "FullName":  "C:\\Users\\Aorus\\Desktop\\hermosura de novadex - RESPALDO 26DIC\\server\\routes\\leads.routes.js",
+        "Length":  4432
+    },
+    {
+        "FullName":  "C:\\Users\\Aorus\\Desktop\\hermosura de novadex - RESPALDO 26DIC\\server\\routes\\nebula.js",
+        "Length":  13173
+    },
+    {
+        "FullName":  "C:\\Users\\Aorus\\Desktop\\hermosura de novadex - RESPALDO 26DIC\\server\\routes\\pagos.routes.js",
+        "Length":  1376
+    },
+    {
+        "FullName":  "C:\\Users\\Aorus\\Desktop\\hermosura de novadex - RESPALDO 26DIC\\server\\routes\\proyectos-fases.routes.js",
+        "Length":  2515
+    },
+    {
+        "FullName":  "C:\\Users\\Aorus\\Desktop\\hermosura de novadex - RESPALDO 26DIC\\server\\routes\\proyectos-gastos.routes.js",
+        "Length":  2163
+    },
+    {
+        "FullName":  "C:\\Users\\Aorus\\Desktop\\hermosura de novadex - RESPALDO 26DIC\\server\\routes\\proyectos.routes.js",
+        "Length":  5274
+    },
+    {
+        "FullName":  "C:\\Users\\Aorus\\Desktop\\hermosura de novadex - RESPALDO 26DIC\\server\\routes\\recordatorios.routes.js",
+        "Length":  2875
+    },
+    {
+        "FullName":  "C:\\Users\\Aorus\\Desktop\\hermosura de novadex - RESPALDO 26DIC\\server\\routes\\servicios.routes.js",
+        "Length":  1749
+    },
+    {
+        "FullName":  "C:\\Users\\Aorus\\Desktop\\hermosura de novadex - RESPALDO 26DIC\\server\\routes\\tareas-archivos.routes.js",
+        "Length":  1673
+    },
+    {
+        "FullName":  "C:\\Users\\Aorus\\Desktop\\hermosura de novadex - RESPALDO 26DIC\\server\\routes\\tareas-dependencias.routes.js",
+        "Length":  1633
+    },
+    {
+        "FullName":  "C:\\Users\\Aorus\\Desktop\\hermosura de novadex - RESPALDO 26DIC\\server\\routes\\tareas.routes.js",
+        "Length":  1784
+    },
+    {
+        "FullName":  "C:\\Users\\Aorus\\Desktop\\hermosura de novadex - RESPALDO 26DIC\\server\\routes\\ventas.routes.js",
+        "Length":  5472
+    },
+    {
+        "FullName":  "C:\\Users\\Aorus\\Desktop\\hermosura de novadex - RESPALDO 26DIC\\server\\services\\rate-limiter.js",
+        "Length":  5748
+    },
+    {
+        "FullName":  "C:\\Users\\Aorus\\Desktop\\hermosura de novadex - RESPALDO 26DIC\\server\\services\\scraper.js",
+        "Length":  28367
+    },
+    {
+        "FullName":  "C:\\Users\\Aorus\\Desktop\\hermosura de novadex - RESPALDO 26DIC\\server\\utils\\init-nebula-db.js",
+        "Length":  2137
+    }
+]

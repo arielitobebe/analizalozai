@@ -1,0 +1,638 @@
+ARCHIVO: public\js\dashboard.js
+================================================================================
+
+const Dashboard = {
+    revenueChart: null,
+    funnelChart: null,
+    // Store data for preview modals
+    leadsData: [],
+    clientsData: [],
+    projectsData: [],
+    financesData: null,
+
+    init() {
+        this.renderView();
+        this.fetchStats();
+    },
+
+    async fetchStats() {
+        try {
+            const [leads, clients, projects, finances, sales] = await Promise.all([
+                fetch('/api/leads').then(r => r.json()),
+                fetch('/api/clientes').then(r => r.json()),
+                fetch('/api/proyectos').then(r => r.json()),
+                fetch('/api/finanzas/summary').then(r => r.json()),
+                fetch('/api/ventas').then(r => r.json())
+            ]);
+
+            // Store data for preview modals
+            this.leadsData = leads;
+            this.clientsData = clients;
+            this.projectsData = projects;
+            this.financesData = finances;
+
+            // KPIs
+            document.getElementById('stat-leads').textContent = leads.length;
+            document.getElementById('stat-clients').textContent = clients.length;
+            document.getElementById('stat-projects').textContent = projects.length;
+            document.getElementById('stat-revenue').textContent = `$${finances.ingresos.toLocaleString()}`;
+
+            // Stats cards in revenue section
+            document.getElementById('stat-ingresos').textContent = `$${finances.ingresos.toLocaleString()}`;
+            document.getElementById('stat-egresos').textContent = `$${finances.egresos.toLocaleString()}`;
+            document.getElementById('stat-balance').textContent = `$${finances.balance.toLocaleString()}`;
+
+            // Charts
+            this.initRevenueChart(finances);
+            this.initFunnelChart(sales);
+
+            // Recent Activity (Mocked aggregation for polish feel)
+            this.renderRecentActivity(leads, projects, sales);
+
+        } catch (error) {
+            console.error('Error fetching dashboard stats:', error);
+        }
+    },
+
+    renderView() {
+        const container = document.getElementById('module-content');
+        container.innerHTML = `
+            ${UI.renderHeader('BIENVENIDO a NOVADEX CRM')}
+            
+            <div class="stats-row" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:20px; margin-bottom:30px;">
+                <div class="card stat-card fade-in" onclick="Dashboard.showLeadsPreview()" style="animation-delay: 0.1s; display:flex; padding:24px; align-items:center; gap:20px; cursor:pointer; transition: all 0.3s; border-radius:28px !important; background:linear-gradient(135deg, #9333ea, #7b2cbf); position:relative; overflow:hidden; border:none !important;" onmouseover="this.style.transform='translateY(-8px) scale(1.02)'; this.style.boxShadow='0 12px 35px rgba(147,51,234,0.5), 0 0 40px rgba(147,51,234,0.3)'" onmouseout="this.style.transform=''; this.style.boxShadow=''">
+                    <div style="position:absolute; top:-30px; right:-30px; width:120px; height:120px; background:radial-gradient(circle, rgba(255,255,255,0.15), transparent); border-radius:50%;"></div>
+                    <div class="stat-icon" style="width:60px; height:60px; border-radius:20px; display:flex; align-items:center; justify-content:center; font-size:1.8rem; background: rgba(255,255,255,0.25); color: white; box-shadow:0 4px 15px rgba(0,0,0,0.2); position:relative; z-index:1;">
+                        <i class="fa-solid fa-users-viewfinder"></i>
+                    </div>
+                    <div class="stat-info" style="position:relative; z-index:1;">
+                        <h3 id="stat-leads" style="margin:0; font-size:2rem; color:white; font-weight:700;">0</h3>
+                        <p style="margin:4px 0 0 0; color:rgba(255,255,255,0.9); font-weight:600; font-size:0.85rem;">Leads Activos</p>
+                    </div>
+                </div>
+                <div class="card stat-card fade-in" onclick="Dashboard.showClientsPreview()" style="animation-delay: 0.2s; display:flex; padding:24px; align-items:center; gap:20px; cursor:pointer; transition: all 0.3s; border-radius:28px !important; background:linear-gradient(135deg, #00b4d8, #0891b2); position:relative; overflow:hidden; border:none !important;" onmouseover="this.style.transform='translateY(-8px) scale(1.02)'; this.style.boxShadow='0 12px 35px rgba(0,180,216,0.5), 0 0 40px rgba(0,180,216,0.3)'" onmouseout="this.style.transform=''; this.style.boxShadow=''">
+                    <div style="position:absolute; top:-30px; right:-30px; width:120px; height:120px; background:radial-gradient(circle, rgba(255,255,255,0.15), transparent); border-radius:50%;"></div>
+                    <div class="stat-icon" style="width:60px; height:60px; border-radius:20px; display:flex; align-items:center; justify-content:center; font-size:1.8rem; background: rgba(255,255,255,0.25); color: white; box-shadow:0 4px 15px rgba(0,0,0,0.2); position:relative; z-index:1;">
+                        <i class="fa-solid fa-briefcase"></i>
+                    </div>
+                    <div class="stat-info" style="position:relative; z-index:1;">
+                        <h3 id="stat-clients" style="margin:0; font-size:2rem; color:white; font-weight:700;">0</h3>
+                        <p style="margin:4px 0 0 0; color:rgba(255,255,255,0.9); font-weight:600; font-size:0.85rem;">Clientes Totales</p>
+                    </div>
+                </div>
+                <div class="card stat-card fade-in" onclick="Dashboard.showProjectsPreview()" style="animation-delay: 0.3s; display:flex; padding:24px; align-items:center; gap:20px; cursor:pointer; transition: all 0.3s; border-radius:28px !important; background:linear-gradient(135deg, #fbbf24, #f59e0b); position:relative; overflow:hidden; border:none !important;" onmouseover="this.style.transform='translateY(-8px) scale(1.02)'; this.style.boxShadow='0 12px 35px rgba(251,191,36,0.5), 0 0 40px rgba(251,191,36,0.3)'" onmouseout="this.style.transform=''; this.style.boxShadow=''">
+                    <div style="position:absolute; top:-30px; right:-30px; width:120px; height:120px; background:radial-gradient(circle, rgba(255,255,255,0.15), transparent); border-radius:50%;"></div>
+                    <div class="stat-icon" style="width:60px; height:60px; border-radius:20px; display:flex; align-items:center; justify-content:center; font-size:1.8rem; background: rgba(255,255,255,0.25); color: white; box-shadow:0 4px 15px rgba(0,0,0,0.2); position:relative; z-index:1;">
+                        <i class="fa-solid fa-diagram-project"></i>
+                    </div>
+                    <div class="stat-info" style="position:relative; z-index:1;">
+                        <h3 id="stat-projects" style="margin:0; font-size:2rem; color:white; font-weight:700;">0</h3>
+                        <p style="margin:4px 0 0 0; color:rgba(255,255,255,0.9); font-weight:600; font-size:0.85rem;">Proyectos Activos</p>
+                    </div>
+                </div>
+                <div class="card stat-card fade-in" onclick="Dashboard.showRevenuePreview()" style="animation-delay: 0.4s; display:flex; padding:24px; align-items:center; gap:20px; cursor:pointer; transition: all 0.3s; border-radius:28px !important; background:linear-gradient(135deg, #10b981, #00b4d8); position:relative; overflow:hidden; border:none !important;" onmouseover="this.style.transform='translateY(-8px) scale(1.02)'; this.style.boxShadow='0 12px 35px rgba(16,185,129,0.5), 0 0 40px rgba(16,185,129,0.3)'" onmouseout="this.style.transform=''; this.style.boxShadow=''">
+                    <div style="position:absolute; top:-30px; right:-30px; width:120px; height:120px; background:radial-gradient(circle, rgba(255,255,255,0.15), transparent); border-radius:50%;"></div>
+                    <div class="stat-icon" style="width:60px; height:60px; border-radius:20px; display:flex; align-items:center; justify-content:center; font-size:1.8rem; background: rgba(255,255,255,0.25); color: white; box-shadow:0 4px 15px rgba(0,0,0,0.2); position:relative; z-index:1;">
+                        <i class="fa-solid fa-sack-dollar"></i>
+                    </div>
+                    <div class="stat-info" style="position:relative; z-index:1;">
+                        <h3 id="stat-revenue" style="margin:0; font-size:2rem; color:white; font-weight:700;">$0</h3>
+                        <p style="margin:4px 0 0 0; color:rgba(255,255,255,0.9); font-weight:600; font-size:0.85rem;">Ingresos Mensuales</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dashboard-grid" style="display: grid; grid-template-columns: 2fr 1fr; gap: 30px;">
+                <div style="display:flex; flex-direction:column; gap:30px;">
+                    <div class="card" style="padding:25px; background:white;">
+                        <!-- Header con estilo gradient -->
+                        <div style="padding-bottom:16px; border-bottom:3px solid transparent; border-image:linear-gradient(90deg, #00b4d8, #ec4899) 1; margin-bottom:24px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <h3 style="margin:0; background:linear-gradient(135deg, #00b4d8, #ec4899); -webkit-background-clip:text; -webkit-text-fill-color:transparent; font-size:1.3rem; font-weight:700;">📊 Rendimiento Financiero</h3>
+                                <div class="period-selector" style="display:flex; gap:6px; background:#f8fafc; padding:4px; border-radius:10px; box-shadow:inset 0 2px 4px rgba(0,0,0,0.05);">
+                                    <button onclick="Dashboard.updateChartPeriod('day')" data-period="day" class="period-btn" style="padding:6px 12px; border:none; background:transparent; border-radius:8px; cursor:pointer; font-size:0.8rem; font-weight:500; color:#64748b; transition:all 0.2s;" onmouseover="if(!this.classList.contains('active')) this.style.background='rgba(147,51,234,0.1)'" onmouseout="if(!this.classList.contains('active')) this.style.background='transparent'">Día</button>
+                                    <button onclick="Dashboard.updateChartPeriod('month')" data-period="month" class="period-btn active" style="padding:6px 12px; border:none; background:#9333ea; border-radius:8px; cursor:pointer; font-size:0.8rem; font-weight:500; color:white; transition:all 0.2s; box-shadow:0 4px 12px rgba(147,51,234,0.3);">Mes</button>
+                                    <button onclick="Dashboard.updateChartPeriod('3months')" data-period="3months" class="period-btn" style="padding:6px 12px; border:none; background:transparent; border-radius:8px; cursor:pointer; font-size:0.8rem; font-weight:500; color:#64748b; transition:all 0.2s;" onmouseover="if(!this.classList.contains('active')) this.style.background='rgba(147,51,234,0.1)'" onmouseout="if(!this.classList.contains('active')) this.style.background='transparent'">3M</button>
+                                    <button onclick="Dashboard.updateChartPeriod('6months')" data-period="6months" class="period-btn" style="padding:6px 12px; border:none; background:transparent; border-radius:8px; cursor:pointer; font-size:0.8rem; font-weight:500; color:#64748b; transition:all 0.2s;" onmouseover="if(!this.classList.contains('active')) this.style.background='rgba(147,51,234,0.1)'" onmouseout="if(!this.classList.contains('active')) this.style.background='transparent'">6M</button>
+                                    <button onclick="Dashboard.updateChartPeriod('year')" data-period="year" class="period-btn" style="padding:6px 12px; border:none; background:transparent; border-radius:8px; cursor:pointer; font-size:0.8rem; font-weight:500; color:#64748b; transition:all 0.2s;" onmouseover="if(!this.classList.contains('active')) this.style.background='rgba(147,51,234,0.1)'" onmouseout="if(!this.classList.contains('active')) this.style.background='transparent'">Año</button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Chart + Stats in 2 columns -->
+                        <div style="display:grid; grid-template-columns:1fr 280px; gap:20px;">
+                            <!-- Chart Section (left) -->
+                            <div style="height:300px; padding:15px; background:white; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+                                <canvas id="revenueChart"></canvas>
+                            </div>
+
+                            <!-- Stats Cards (right, vertical) -->
+                            <div style="display:flex; flex-direction:column; gap:12px;">
+                                <!-- Ingresos Card -->
+                                <div style="background:linear-gradient(135deg, #00b4d8, #ec4899); padding:16px; border-radius:12px; position:relative; overflow:hidden; cursor:pointer; transition:all 0.3s ease; flex:1;" onmouseover="this.style.transform='translateX(4px) scale(1.02)'; this.style.boxShadow='0 8px 20px rgba(0,180,216,0.5), 0 0 30px rgba(0,180,216,0.3)'; this.querySelector('.stat-icon-mini').style.transform='rotate(360deg) scale(1.1)'" onmouseout="this.style.transform=''; this.style.boxShadow=''; this.querySelector('.stat-icon-mini').style.transform=''">
+                                    <div style="position:absolute; top:-15px; right:-15px; width:60px; height:60px; background:rgba(255,255,255,0.15); border-radius:50%;"></div>
+                                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                                        <div>
+                                            <p style="margin:0; font-size:0.7rem; color:rgba(255,255,255,0.95); font-weight:600; letter-spacing:1px;">INGRESOS</p>
+                                            <h3 id="stat-ingresos" style="margin:4px 0 0 0; font-size:1.4rem; color:white; font-weight:700;">$0</h3>
+                                        </div>
+                                        <div class="stat-icon-mini" style="width:36px; height:36px; background:rgba(255,255,255,0.25); border-radius:10px; display:flex; align-items:center; justify-content:center; transition:transform 0.5s ease;">
+                                            <i class="fa-solid fa-arrow-trend-up" style="font-size:1.1rem; color:white;"></i>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Egresos Card -->
+                                <div style="background:linear-gradient(135deg, #ff6b6b, #ee5a6f); padding:16px; border-radius:12px; position:relative; overflow:hidden; cursor:pointer; transition:all 0.3s ease; flex:1;" onmouseover="this.style.transform='translateX(4px) scale(1.02)'; this.style.boxShadow='0 8px 20px rgba(255,107,107,0.5), 0 0 30px rgba(255,107,107,0.3)'; this.querySelector('.stat-icon-mini').style.transform='rotate(-360deg) scale(1.1)'" onmouseout="this.style.transform=''; this.style.boxShadow=''; this.querySelector('.stat-icon-mini').style.transform=''">
+                                    <div style="position:absolute; top:-15px; right:-15px; width:60px; height:60px; background:rgba(255,255,255,0.15); border-radius:50%;"></div>
+                                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                                        <div>
+                                            <p style="margin:0; font-size:0.7rem; color:rgba(255,255,255,0.95); font-weight:600; letter-spacing:1px;">EGRESOS</p>
+                                            <h3 id="stat-egresos" style="margin:4px 0 0 0; font-size:1.4rem; color:white; font-weight:700;">$0</h3>
+                                        </div>
+                                        <div class="stat-icon-mini" style="width:36px; height:36px; background:rgba(255,255,255,0.25); border-radius:10px; display:flex; align-items:center; justify-content:center; transition:transform 0.5s ease;">
+                                            <i class="fa-solid fa-arrow-trend-down" style="font-size:1.1rem; color:white;"></i>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Balance Card -->
+                                <div style="background:linear-gradient(135deg, #9333ea, #7c3aed); padding:16px; border-radius:12px; position:relative; overflow:hidden; cursor:pointer; transition:all 0.3s ease; flex:1;" onmouseover="this.style.transform='translateX(4px) scale(1.02)'; this.style.boxShadow='0 8px 20px rgba(147,51,234,0.3)'; this.querySelector('.stat-icon-mini').style.transform='scale(1.15)'; this.querySelector('.pulse-dot').style.animation='pulse 1s infinite'" onmouseout="this.style.transform=''; this.style.boxShadow=''; this.querySelector('.stat-icon-mini').style.transform=''; this.querySelector('.pulse-dot').style.animation=''">
+                                    <div style="position:absolute; top:-15px; right:-15px; width:60px; height:60px; background:rgba(255,255,255,0.1); border-radius:50%;"></div>
+                                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                                        <div>
+                                            <p style="margin:0; font-size:0.7rem; color:rgba(255,255,255,0.9); font-weight:500;">BALANCE</p>
+                                            <h3 id="stat-balance" style="margin:4px 0 0 0; font-size:1.4rem; color:white; font-weight:700;">$0</h3>
+                                        </div>
+                                        <div class="stat-icon-mini" style="width:36px; height:36px; background:rgba(255,255,255,0.2); border-radius:10px; display:flex; align-items:center; justify-content:center; position:relative; transition:transform 0.3s ease;">
+                                            <i class="fa-solid fa-wallet" style="font-size:1.1rem; color:white;"></i>
+                                            <span class="pulse-dot" style="position:absolute; top:6px; right:6px; width:7px; height:7px; background:#10b981; border-radius:50%; border:2px solid white;"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card" style="padding:25px;">
+                        <div style="padding-bottom:16px; border-bottom:3px solid transparent; border-image:linear-gradient(90deg, #00b4d8, #ec4899) 1; margin-bottom:24px;">
+                            <h3 style="margin:0; background:linear-gradient(135deg, #00b4d8, #ec4899); -webkit-background-clip:text; -webkit-text-fill-color:transparent; font-size:1.3rem; font-weight:700;">⚡ Actividad Reciente</h3>
+                        </div>
+                        <div id="recent-activity-list" style="display:flex; flex-direction:column; gap:15px;">
+                            <!-- Activity Inserted Here -->
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display:flex; flex-direction:column; gap:30px;">
+                    <div class="card" style="padding:25px;">
+                        <div style="padding-bottom:16px; border-bottom:3px solid transparent; border-image:linear-gradient(90deg, #00b4d8, #ec4899) 1; margin-bottom:24px;">
+                            <h3 style="margin:0; background:linear-gradient(135deg, #00b4d8, #ec4899); -webkit-background-clip:text; -webkit-text-fill-color:transparent; font-size:1.3rem; font-weight:700;">🎯 Embudo de Ventas</h3>
+                        </div>
+                        <div id="funnel-container" style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-top:20px;">
+                            <!-- FILA 1 -->
+                            <div class="funnel-stage" data-stage="leads" style="background:linear-gradient(135deg, #00b4d8, #0891b2); border-radius:16px; padding:20px; position:relative; overflow:hidden; cursor:pointer; transition:all 0.4s cubic-bezier(0.4,0,0.2,1); min-height:140px; display:flex; flex-direction:column; justify-content:space-between;" onmouseover="this.style.transform='translateY(-6px) scale(1.02)'; this.style.boxShadow='0 10px 30px rgba(0,180,216,0.5), 0 0 40px rgba(0,180,216,0.3)'; this.querySelector('.funnel-icon').style.transform='rotate(360deg) scale(1.15)'" onmouseout="this.style.transform=''; this.style.boxShadow='0 4px 12px rgba(0,180,216,0.2)'; this.querySelector('.funnel-icon').style.transform=''">
+                                <div style="position:absolute; top:-20px; right:-20px; width:100px; height:100px; background:radial-gradient(circle, rgba(255,255,255,0.15), transparent); border-radius:50%;"></div>
+                                <div class="funnel-icon" style="width:50px; height:50px; background:rgba(255,255,255,0.25); border-radius:12px; display:flex; align-items:center; justify-content:center; transition:transform 0.5s ease; position:relative; z-index:1;">
+                                    <i class="fa-solid fa-bullseye" style="color:white; font-size:1.5rem;"></i>
+                                </div>
+                                <div style="position:relative; z-index:1;">
+                                    <p style="margin:0; font-size:0.7rem; color:rgba(255,255,255,0.9); font-weight:600; letter-spacing:0.5px;">LEADS</p>
+                                    <h4 id="funnel-leads" style="margin:4px 0 0 0; font-size:1.8rem; color:white; font-weight:700;">0</h4>
+                                    <p style="margin:4px 0 0 0; font-size:0.75rem; color:rgba(255,255,255,0.7);">100%</p>
+                                </div>
+                            </div>
+                            
+                            <div class="funnel-stage" data-stage="qualified" style="background:linear-gradient(135deg, #9333ea, #7b2cbf); border-radius:16px; padding:20px; position:relative; overflow:hidden; cursor:pointer; transition:all 0.4s cubic-bezier(0.4,0,0.2,1); min-height:140px; display:flex; flex-direction:column; justify-content:space-between;" onmouseover="this.style.transform='translateY(-6px) scale(1.02)'; this.style.boxShadow='0 10px 30px rgba(147,51,234,0.5), 0 0 40px rgba(147,51,234,0.3)'; this.querySelector('.funnel-icon').style.transform='rotate(360deg) scale(1.15)'" onmouseout="this.style.transform=''; this.style.boxShadow='0 4px 12px rgba(147,51,234,0.2)'; this.querySelector('.funnel-icon').style.transform=''">
+                                <div style="position:absolute; top:-20px; right:-20px; width:100px; height:100px; background:radial-gradient(circle, rgba(255,255,255,0.15), transparent); border-radius:50%;"></div>
+                                <div class="funnel-icon" style="width:50px; height:50px; background:rgba(255,255,255,0.25); border-radius:12px; display:flex; align-items:center; justify-content:center; transition:transform 0.5s ease; position:relative; z-index:1;">
+                                    <i class="fa-solid fa-filter" style="color:white; font-size:1.5rem;"></i>
+                                </div>
+                                <div style="position:relative; z-index:1;">
+                                    <p style="margin:0; font-size:0.7rem; color:rgba(255,255,255,0.9); font-weight:600; letter-spacing:0.5px;">CALIFICADOS</p>
+                                    <h4 id="funnel-qualified" style="margin:4px 0 0 0; font-size:1.8rem; color:white; font-weight:700;">0</h4>
+                                    <p style="margin:4px 0 0 0; font-size:0.75rem; color:rgba(255,255,255,0.7);">~70%</p>
+                                </div>
+                            </div>
+                            
+                            <!-- FILA 2 -->
+                            <div class="funnel-stage" data-stage="proposals" style="background:linear-gradient(135deg, #fbbf24, #f59e0b); border-radius:16px; padding:20px; position:relative; overflow:hidden; cursor:pointer; transition:all 0.4s cubic-bezier(0.4,0,0.2,1); min-height:140px; display:flex; flex-direction:column; justify-content:space-between;" onmouseover="this.style.transform='translateY(-6px) scale(1.02)'; this.style.boxShadow='0 10px 30px rgba(251,191,36,0.5), 0 0 40px rgba(251,191,36,0.3)'; this.querySelector('.funnel-icon').style.transform='rotate(360deg) scale(1.15)'" onmouseout="this.style.transform=''; this.style.boxShadow='0 4px 12px rgba(251,191,36,0.2)'; this.querySelector('.funnel-icon').style.transform=''">
+                                <div style="position:absolute; top:-20px; right:-20px; width:100px; height:100px; background:radial-gradient(circle, rgba(255,255,255,0.15), transparent); border-radius:50%;"></div>
+                                <div class="funnel-icon" style="width:50px; height:50px; background:rgba(255,255,255,0.25); border-radius:12px; display:flex; align-items:center; justify-content:center; transition:transform 0.5s ease; position:relative; z-index:1;">
+                                    <i class="fa-solid fa-file-contract" style="color:white; font-size:1.5rem;"></i>
+                                </div>
+                                <div style="position:relative; z-index:1;">
+                                    <p style="margin:0; font-size:0.7rem; color:rgba(255,255,255,0.9); font-weight:600; letter-spacing:0.5px;">PROPUESTAS</p>
+                                    <h4 id="funnel-proposals" style="margin:4px 0 0 0; font-size:1.8rem; color:white; font-weight:700;">0</h4>
+                                    <p style="margin:4px 0 0 0; font-size:0.75rem; color:rgba(255,255,255,0.7);">~50%</p>
+                                </div>
+                            </div>
+                            
+                            <div class="funnel-stage" data-stage="closed" style="background:linear-gradient(135deg, #10b981, #00b4d8); border-radius:16px; padding:20px; position:relative; overflow:hidden; cursor:pointer; transition:all 0.4s cubic-bezier(0.4,0,0.2,1); min-height:140px; display:flex; flex-direction:column; justify-content:space-between;" onmouseover="this.style.transform='translateY(-6px) scale(1.02)'; this.style.boxShadow='0 10px 30px rgba(16,185,129,0.5), 0 0 40px rgba(16,185,129,0.3)'; this.querySelector('.funnel-icon').style.transform='rotate(360deg) scale(1.15)'" onmouseout="this.style.transform=''; this.style.boxShadow='0 4px 12px rgba(16,185,129,0.2)'; this.querySelector('.funnel-icon').style.transform=''">
+                                <div style="position:absolute; top:-20px; right:-20px; width:100px; height:100px; background:radial-gradient(circle, rgba(255,255,255,0.15), transparent); border-radius:50%;"></div>
+                                <div class="funnel-icon" style="width:50px; height:50px; background:rgba(255,255,255,0.25); border-radius:12px; display:flex; align-items:center; justify-content:center; transition:transform 0.5s ease; position:relative; z-index:1;">
+                                    <i class="fa-solid fa-trophy" style="color:white; font-size:1.5rem;"></i>
+                                </div>
+                                <div style="position:relative; z-index:1;">
+                                    <p style="margin:0; font-size:0.7rem; color:rgba(255,255,255,0.9); font-weight:600; letter-spacing:0.5px;">CERRADOS</p>
+                                    <h4 id="funnel-closed" style="margin:4px 0 0 0; font-size:1.8rem; color:white; font-weight:700;">0</h4>
+                                    <p style="margin:4px 0 0 0; font-size:0.75rem; color:rgba(255,255,255,0.7);">~30%</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card" style="padding:25px;">
+                        <h3 style="margin-bottom:15px;">Acciones Rápidas</h3>
+                        <div style="display: flex; flex-direction: column; gap: 10px;">
+                            <button class="btn btn-secondary" onclick="location.hash='#leads'" style="text-align:left; justify-content:flex-start;">
+                                <i class="fa-solid fa-bullseye" style="margin-right:10px;"></i> Ver Pipeline
+                            </button>
+                            <button class="btn btn-secondary" onclick="location.hash='#equipo'" style="text-align:left; justify-content:flex-start;">
+                                <i class="fa-solid fa-users" style="margin-right:10px;"></i> Consultar Equipo
+                            </button>
+                            <button class="btn btn-secondary" onclick="location.hash='#servicios'" style="text-align:left; justify-content:flex-start;">
+                                <i class="fa-solid fa-tag" style="margin-right:10px;"></i> Catálogo de Servicios
+                            </button>
+                            <button class="btn btn-primary" onclick="UI.modal.show('Nueva Tarea', '<div>Funcionalidad rápida próximamente</div>')" style="margin-top:10px;">
+                                <i class="fa-solid fa-plus"></i> Nueva Tarea
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        if (window.Reminders) window.Reminders.renderWidget();
+        if (window.MotivationalQuotes) window.MotivationalQuotes.init();
+    },
+
+    initRevenueChart(finances) {
+        const ctx = document.getElementById('revenueChart');
+        if (!ctx) return;
+
+        // Store finances for period updates
+        this.currentFinances = finances;
+
+        if (this.revenueChart) this.revenueChart.destroy();
+
+        // Default: 6 months data
+        const months = ['Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+        const data = [
+            finances.ingresos * 0.5,
+            finances.ingresos * 0.7,
+            finances.ingresos * 0.6,
+            finances.ingresos * 0.8,
+            finances.ingresos * 0.9,
+            finances.ingresos
+        ];
+
+        // Create gradient
+        const gradient = ctx.getContext('2d').createLinearGradient(0, 0, 0, 300);
+        gradient.addColorStop(0, '#9333ea');
+        gradient.addColorStop(1, '#c084fc');
+
+        this.revenueChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: months,
+                datasets: [{
+                    label: 'Ingresos',
+                    data: data,
+                    backgroundColor: gradient,
+                    borderRadius: 8,
+                    borderSkipped: false,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(0,0,0,0.8)',
+                        padding: 12,
+                        borderRadius: 8,
+                        titleColor: '#fff',
+                        bodyColor: '#fff',
+                        callbacks: {
+                            label: (context) => `Ingresos: $${context.parsed.y.toLocaleString()}`
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: '#f1f5f9',
+                            borderDash: [5, 5]
+                        },
+                        ticks: {
+                            callback: (value) => '$' + value.toLocaleString()
+                        }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: {
+                            font: {
+                                weight: '500'
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    },
+
+    initFunnelChart(sales) {
+        const ctx = document.getElementById('funnelChart').getContext('2d');
+        if (this.funnelChart) this.funnelChart.destroy();
+
+        const stages = ['prospecto', 'negociacion', 'propuesta', 'cerrado'];
+        const counts = stages.map(stage => sales.filter(s => s.etapa === stage).length);
+
+        this.funnelChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['Prospecto', 'Negociación', 'Propuesta', 'Cerrado'],
+                datasets: [{
+                    label: 'Ventas por Etapa',
+                    data: counts,
+                    backgroundColor: ['#94a3b8', '#3b82f6', '#f59e0b', '#10b981'],
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { x: { display: false }, y: { grid: { display: false } } }
+            }
+        });
+    },
+
+    renderRecentActivity(leads, projects, sales) {
+        const container = document.getElementById('recent-activity-list');
+        const activities = [];
+
+        // Mix latest items
+        leads.slice(0, 3).forEach(l => activities.push({
+            icon: 'fa-user-plus', color: 'var(--primary-medium)',
+            text: `Nuevo lead capturado: <strong>${l.nombre}</strong>`,
+            date: new Date(l.fecha_creacion)
+        }));
+
+        projects.slice(0, 3).forEach(p => activities.push({
+            icon: 'fa-diagram-project', color: '#3b82f6',
+            text: `Proyecto iniciado: <strong>${p.nombre}</strong>`,
+            date: new Date(p.fecha_inicio || Date.now())
+        }));
+
+        sales.filter(s => s.etapa === 'cerrado').slice(0, 3).forEach(s => activities.push({
+            icon: 'fa-check-circle', color: 'var(--success)',
+            text: `Venta cerrada: <strong>${s.titulo}</strong>`,
+            date: new Date() // Mock date as sales might not have completion date
+        }));
+
+        // Sort by date desc
+        activities.sort((a, b) => b.date - a.date);
+
+        container.innerHTML = activities.slice(0, 5).map(a => `
+            <div style="display:flex; gap:15px; align-items:center; padding-bottom:15px; border-bottom:1px solid #f1f5f9;">
+                <div style="width:40px; height:40px; border-radius:50%; background:${a.color}20; color:${a.color}; display:flex; align-items:center; justify-content:center;">
+                    <i class="fa-solid ${a.icon}"></i>
+                </div>
+                <div>
+                    <p style="margin:0; font-size:0.9rem;">${a.text}</p>
+                    <small style="color:var(--text-secondary);">${a.date.toLocaleDateString()}</small>
+                </div>
+            </div>
+        `).join('') || '<p class="text-muted">Sin actividad reciente</p>';
+    },
+
+    showLeadsPreview() {
+        const recent = this.leadsData.slice(0, 5);
+        const html = `
+            <div style="margin-bottom:20px;">
+                <p style="color:var(--text-secondary); margin-bottom:15px;">Últimos 5 leads capturados</p>
+                <div style="display:flex; flex-direction:column; gap:12px;">
+                    ${recent.map(lead => `
+                        <div onclick="location.hash='#leads'; UI.modal.hide(); setTimeout(() => Leads.showDetails('${lead.id}'), 600)" 
+                             style="padding:12px; background:#f8fafc; border-radius:8px; border-left:4px solid ${lead.temperatura === 'caliente' ? '#ef4444' :
+                lead.temperatura === 'tibio' ? '#f59e0b' : '#64748b'
+            }; cursor:pointer; transition: all 0.2s;"
+                             onmouseover="this.style.background='#e0e7ff'; this.style.transform='translateX(4px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)'" 
+                             onmouseout="this.style.background='#f8fafc'; this.style.transform=''; this.style.boxShadow=''">
+                            <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:5px;">
+                                <strong style="font-size:0.95rem;">${lead.nombre}</strong>
+                                <span class="badge" style="background:${lead.estatus === 'nuevo' ? '#94a3b8' :
+                lead.estatus === 'ganado' ? '#10b981' : '#3b82f6'
+            }; font-size:0.7rem;">${(lead.estatus || '').toUpperCase()}</span>
+                            </div>
+                            <p style="margin:0; font-size:0.85rem; color:var(--text-secondary);">
+                                <i class="fa-solid fa-building" style="width:14px;"></i> ${lead.empresa || 'Sin empresa'}
+                            </p>
+                            <p style="margin:5px 0 0 0; font-size:0.75rem; color:var(--text-secondary);">
+                                <i class="fa-regular fa-clock" style="width:14px;"></i> ${new Date(lead.fecha_creacion).toLocaleDateString()}
+                            </p>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+
+        UI.modal.show('Vista Previa: Leads Activos', html, `
+            <button class="btn btn-secondary" onclick="UI.modal.hide()">Cerrar</button>
+            <button class="btn btn-primary" onclick="location.hash='#leads'; UI.modal.hide()">
+                <i class="fa-solid fa-bullseye"></i> Ver Pipeline Completo
+            </button>
+        `);
+    },
+
+    showClientsPreview() {
+        const recent = this.clientsData.slice(0, 5);
+        const html = `
+            <div style="margin-bottom:20px;">
+                <p style="color:var(--text-secondary); margin-bottom:15px;">Últimos 5 clientes registrados</p>
+                <div style="display:flex; flex-direction:column; gap:12px;">
+                    ${recent.map(client => `
+                        <div onclick="location.hash='#clientes'; UI.modal.hide(); setTimeout(() => Clients.showEditModal('${client.id}'), 600)" 
+                             style="padding:12px; background:#f8fafc; border-radius:8px; border-left:4px solid #10b981; cursor:pointer; transition: all 0.2s;"
+                             onmouseover="this.style.background='#d1fae5'; this.style.transform='translateX(4px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)'"
+                             onmouseout="this.style.background='#f8fafc'; this.style.transform=''; this.style.boxShadow=''">
+                            <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:5px;">
+                                <strong style="font-size:0.95rem;">${client.nombre_negocio || 'Sin nombre'}</strong>
+                                <span class="badge ${client.estado_pago === 'al_corriente' ? 'badge-success' : 'badge-warning'}" style="font-size:0.7rem;">
+                                    ${(client.estado_pago || 'pendiente').toUpperCase()}
+                                </span>
+                            </div>
+                            <p style="margin:0; font-size:0.85rem; color:var(--text-secondary);">
+                                <i class="fa-solid fa-user" style="width:14px;"></i> ${client.persona_encargada || 'Sin contacto'}
+                            </p>
+                            <p style="margin:5px 0 0 0; font-size:0.85rem; color:var(--success);">
+                                <i class="fa-solid fa-dollar-sign" style="width:14px;"></i> $${(client.monto_total || 0).toLocaleString()}
+                            </p>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+
+        UI.modal.show('Vista Previa: Clientes', html, `
+            <button class="btn btn-secondary" onclick="UI.modal.hide()">Cerrar</button>
+            <button class="btn btn-primary" onclick="location.hash='#clientes'; UI.modal.hide()">
+                <i class="fa-solid fa-briefcase"></i> Ver Todos los Clientes
+            </button>
+        `);
+    },
+
+    showProjectsPreview() {
+        const recent = this.projectsData.slice(0, 5);
+        const html = `
+            <div style="margin-bottom:20px;">
+                <p style="color:var(--text-secondary); margin-bottom:15px;">Últimos 5 proyectos activos</p>
+                <div style="display:flex; flex-direction:column; gap:12px;">
+                    ${recent.map(project => `
+                        <div onclick="location.hash='#proyectos'; UI.modal.hide(); setTimeout(() => Projects.showDetails('${project.id}'), 600)" 
+                             style="padding:12px; background:#f8fafc; border-radius:8px; border-left:4px solid #3b82f6; cursor:pointer; transition: all 0.2s;"
+                             onmouseover="this.style.background='#dbeafe'; this.style.transform='translateX(4px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)'"
+                             onmouseout="this.style.background='#f8fafc'; this.style.transform=''; this.style.boxShadow=''">
+                            <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:5px;">
+                                <strong style="font-size:0.95rem;">${project.nombre}</strong>
+                                <span class="badge" style="background:#3b82f6; font-size:0.7rem;">${(project.estado || 'activo').toUpperCase()}</span>
+                            </div>
+                            <div style="margin-top:8px;">
+                                <div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:0.75rem;">
+                                    <span>Progreso</span>
+                                    <strong>${project.progreso_general || 0}%</strong>
+                                </div>
+                                <div style="background:#e2e8f0; height:6px; border-radius:3px; overflow:hidden;">
+                                    <div style="background:#3b82f6; height:100%; width:${project.progreso_general || 0}%; transition:width 0.3s;"></div>
+                                </div>
+                            </div>
+                            <p style="margin:8px 0 0 0; font-size:0.75rem; color:var(--text-secondary);">
+                                <i class="fa-regular fa-calendar" style="width:14px;"></i> 
+                                ${project.fecha_entrega_estimada ? new Date(project.fecha_entrega_estimada).toLocaleDateString() : 'Sin fecha'}
+                            </p>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+
+        UI.modal.show('Vista Previa: Proyectos', html, `
+            <button class="btn btn-secondary" onclick="UI.modal.hide()">Cerrar</button>
+            <button class="btn btn-primary" onclick="location.hash='#proyectos'; UI.modal.hide()">
+                <i class="fa-solid fa-diagram-project"></i> Ver Todos los Proyectos
+            </button>
+        `);
+    },
+
+    async showRevenuePreview() {
+        try {
+            const res = await fetch('/api/finanzas/transactions');
+            const transactions = await res.json();
+            const recent = transactions.slice(0, 5);
+
+            const html = `
+                <div style="margin-bottom:20px;">
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom:20px;">
+                        <div style="padding:15px; background:#f0fdf4; border-radius:8px; text-align:center;">
+                            <p style="margin:0; font-size:0.75rem; color:#16a34a;">INGRESOS</p>
+                            <strong style="font-size:1.5rem; color:#16a34a;">$${this.financesData.ingresos.toLocaleString()}</strong>
+                        </div>
+                        <div style="padding:15px; background:#fef2f2; border-radius:8px; text-align:center;">
+                            <p style="margin:0; font-size:0.75rem; color:#dc2626;">EGRESOS</p>
+                            <strong style="font-size:1.5rem; color:#dc2626;">$${this.financesData.egresos.toLocaleString()}</strong>
+                        </div>
+                    </div>
+                    <p style="color:var(--text-secondary); margin-bottom:15px;">Últimas 5 transacciones</p>
+                    <div style="display:flex; flex-direction:column; gap:12px;">
+                        ${recent.map(trans => `
+                            <div style="padding:12px; background:#f8fafc; border-radius:8px; border-left:4px solid ${trans.tipo === 'ingreso' ? '#10b981' : '#ef4444'
+                }; cursor:pointer; transition: all 0.2s;"
+                                 onmouseover="this.style.background='${trans.tipo === 'ingreso' ? '#f0fdf4' : '#fef2f2'}'; this.style.transform='translateX(4px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)'"
+                                 onmouseout="this.style.background='#f8fafc'; this.style.transform=''; this.style.boxShadow=''"
+                                 onclick="location.hash='#finanzas'; UI.modal.hide()">
+                                <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:5px;">
+                                    <strong style="font-size:0.95rem;">${trans.concepto || 'Sin concepto'}</strong>
+                                    <strong style="color:${trans.tipo === 'ingreso' ? '#10b981' : '#ef4444'}; font-size:0.95rem;">
+                                        ${trans.tipo === 'ingreso' ? '+ ' : '- '}$${trans.monto.toLocaleString()}
+                                    </strong>
+                                </div>
+                                <p style="margin:5px 0 0 0; font-size:0.75rem; color:var(--text-secondary);">
+                                    <i class="fa-regular fa-calendar" style="width:14px;"></i> 
+                                    ${new Date(trans.fecha).toLocaleDateString()}
+                                </p>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+
+            UI.modal.show('Vista Previa: Finanzas', html, `
+                <button class="btn btn-secondary" onclick="UI.modal.hide()">Cerrar</button>
+                <button class="btn btn-primary" onclick="location.hash='#finanzas'; UI.modal.hide()">
+                    <i class="fa-solid fa-chart-line"></i> Ver Finanzas Completas
+                </button>
+            `);
+        } catch (error) {
+            console.error('Error loading revenue preview:', error);
+            UI.notify('Error al cargar vista previa', 'error');
+        }
+    },
+
+    updateChartPeriod(period) {
+        if (!this.currentFinances) return;
+
+        // Update button styles
+        document.querySelectorAll('.period-btn').forEach(btn => {
+            btn.style.background = 'transparent';
+            btn.style.color = '#64748b';
+        });
+        document.querySelector(`[data-period="${period}"]`).style.background = '#9333ea';
+        document.querySelector(`[data-period="${period}"]`).style.color = 'white';
+
+        // Generate data based on period
+        let labels, data;
+        const base = this.currentFinances.ingresos;
+
+        switch (period) {
+            case 'day':
+                labels = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+                data = [
+                    base * 0.15, base * 0.12, base * 0.18,
+                    base * 0.14, base * 0.16, base * 0.08, base * 0.05
+                ];
+                break;
+            case 'month':
+                const weeks = ['Sem 1', 'Sem 2', 'Sem 3', 'Sem 4'];
+                labels = weeks;
+                data = [base * 0.22, base * 0.28, base * 0.24, base * 0.26];
+                break;
+            case '3months':
+                labels = ['Mes 1', 'Mes 2', 'Mes 3'];
+                data = [base * 0.85, base * 0.92, base];
+                break;
+            case '6months':
+                labels = ['Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+                data = [base * 0.5, base * 0.7, base * 0.6, base * 0.8, base * 0.9, base];
+                break;
+            case 'year':
+                labels = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+                data = [
+                    base * 0.4, base * 0.45, base * 0.5, base * 0.55,
+                    base * 0.6, base * 0.65, base * 0.7, base * 0.75,
+                    base * 0.8, base * 0.85, base * 0.9, base
+                ];
+                break;
+        }
+
+        // Update chart
+        this.revenueChart.data.labels = labels;
+        this.revenueChart.data.datasets[0].data = data;
+        this.revenueChart.update('active');
+    }
+};
+
+window.Dashboard = Dashboard;
