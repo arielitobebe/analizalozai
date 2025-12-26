@@ -1,0 +1,86 @@
+ESTRUCTURA COMPLETA DEL PROYECTO NOVADEX CRM
+================================================================================
+
+Total de archivos: 65
+Total de carpetas: 12
+
+ÁRBOL DE ARCHIVOS:
+--------------------------------------------------------------------------------
+
+📄 audit-report.json (3.39 KB)
+📄 audit-script.js (10.68 KB)
+📄 check-schema.js (1.73 KB)
+📄 clean-nebula.js (2.16 KB)
+📄 clear-nebula-db.js (1.79 KB)
+📄 debug-nebula.js (4.79 KB)
+📄 DIAGNOSTICO-NEBULA.md (1.92 KB)
+📄 ESPECIFICACIONES TÉCNICAS COMPLETAS NOVADEX.txt (81.38 KB)
+📄 fix-schema.js (1.88 KB)
+📄 generar-analisis.js (10.95 KB)
+📄 INSTRUCCIONES-ARREGLO-NEBULA.txt (2.71 KB)
+📄 package-lock.json (168.41 KB)
+📄 package.json (0.66 KB)
+📁 public
+  📁 assets
+  📁 css
+    📄 modules.css (13.77 KB)
+    📄 styles.css (26.71 KB)
+  📄 index.html (5.42 KB)
+  📁 js
+    📄 calendar.js (12.95 KB)
+    📄 clients.js (78.51 KB)
+    📄 community.js (6.66 KB)
+    📄 dashboard.js (48.59 KB)
+    📄 finance.js (27.32 KB)
+    📄 leads.js (41.70 KB)
+    📄 main.js (13.17 KB)
+    📄 motivational-quotes.js (83.22 KB)
+    📄 nebula.js (29.02 KB)
+    📄 projects.js (48.77 KB)
+    📄 quotes.js (23.99 KB)
+    📄 reminders.js (11.00 KB)
+    📄 sales.js (24.77 KB)
+    📄 services.js (10.56 KB)
+    📄 settings.js (20.15 KB)
+    📄 tasks.js (43.87 KB)
+    📄 team.js (38.64 KB)
+  📁 uploads
+    📄 fa88b6b7-7a3c-44df-a975-d21c00236cad.png (4038.20 KB)
+📄 README.md (3.25 KB)
+📁 server
+  📁 controllers
+  📄 db.js (14.75 KB)
+  📄 index.js (2.19 KB)
+  📁 middleware
+  📁 models
+  📁 routes
+    📄 clientes-archivos.routes.js (1.80 KB)
+    📄 clientes-notas.routes.js (2.02 KB)
+    📄 clientes.routes.js (2.41 KB)
+    📄 community.routes.js (1.02 KB)
+    📄 config.routes.js (1.68 KB)
+    📄 cotizaciones.routes.js (4.60 KB)
+    📄 equipo.routes.js (2.50 KB)
+    📄 finanzas.routes.js (3.34 KB)
+    📄 leads-advanced.routes.js (2.87 KB)
+    📄 leads.routes.js (4.33 KB)
+    📄 nebula.js (12.86 KB)
+    📄 pagos.routes.js (1.34 KB)
+    📄 proyectos-fases.routes.js (2.46 KB)
+    📄 proyectos-gastos.routes.js (2.11 KB)
+    📄 proyectos.routes.js (5.15 KB)
+    📄 recordatorios.routes.js (2.81 KB)
+    📄 servicios.routes.js (1.71 KB)
+    📄 tareas-archivos.routes.js (1.63 KB)
+    📄 tareas-dependencias.routes.js (1.59 KB)
+    📄 tareas.routes.js (1.74 KB)
+    📄 ventas.routes.js (5.34 KB)
+  📄 seed.js (15.29 KB)
+  📁 services
+    📄 rate-limiter.js (5.61 KB)
+    📄 scraper.js (27.70 KB)
+  📄 upload.js (1.20 KB)
+  📁 utils
+    📄 init-nebula-db.js (2.09 KB)
+📄 test-nebula-flow.js (3.86 KB)
+📄 test-scraper.js (1.82 KB)

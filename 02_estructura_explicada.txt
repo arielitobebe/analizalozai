@@ -1,0 +1,266 @@
+ESTRUCTURA EXPLICADA - NOVADEX CRM
+================================================================================
+
+DESCRIPCIÓN DE CADA ARCHIVO Y SU FUNCIÓN
+--------------------------------------------------------------------------------
+
+
+📄 audit-report.json
+   → Archivo del proyecto
+   → Tamaño: 3.39 KB
+
+📄 audit-script.js
+   → Archivo del proyecto
+   → Tamaño: 10.68 KB
+
+📄 check-schema.js
+   → Archivo del proyecto
+   → Tamaño: 1.73 KB
+
+📄 clean-nebula.js
+   → Archivo del proyecto
+   → Tamaño: 2.16 KB
+
+📄 clear-nebula-db.js
+   → Archivo del proyecto
+   → Tamaño: 1.79 KB
+
+📄 debug-nebula.js
+   → Archivo del proyecto
+   → Tamaño: 4.79 KB
+
+📄 DIAGNOSTICO-NEBULA.md
+   → Documentación en Markdown
+   → Tamaño: 1.92 KB
+
+📄 ESPECIFICACIONES TÉCNICAS COMPLETAS NOVADEX.txt
+   → Archivo del proyecto
+   → Tamaño: 81.38 KB
+
+📄 fix-schema.js
+   → Archivo del proyecto
+   → Tamaño: 1.88 KB
+
+📄 generar-analisis.js
+   → Archivo del proyecto
+   → Tamaño: 10.95 KB
+
+📄 INSTRUCCIONES-ARREGLO-NEBULA.txt
+   → Archivo del proyecto
+   → Tamaño: 2.71 KB
+
+📄 package-lock.json
+   → Archivo del proyecto
+   → Tamaño: 168.41 KB
+
+📄 package.json
+   → Dependencias y scripts del proyecto
+   → Tamaño: 0.66 KB
+
+📄 public\css\modules.css
+   → Hoja de estilos CSS
+   → Tamaño: 13.77 KB
+
+📄 public\css\styles.css
+   → Hoja de estilos CSS
+   → Tamaño: 26.71 KB
+
+📄 public\index.html
+   → Parte de: Frontend del sistema - SPA (Single Page Application)
+   → Tamaño: 5.42 KB
+
+📄 public\js\calendar.js
+   → Archivo del proyecto
+   → Tamaño: 12.95 KB
+
+📄 public\js\clients.js
+   → Archivo del proyecto
+   → Tamaño: 78.51 KB
+
+📄 public\js\community.js
+   → Archivo del proyecto
+   → Tamaño: 6.66 KB
+
+📄 public\js\dashboard.js
+   → Archivo del proyecto
+   → Tamaño: 48.59 KB
+
+📄 public\js\finance.js
+   → Archivo del proyecto
+   → Tamaño: 27.32 KB
+
+📄 public\js\leads.js
+   → Archivo del proyecto
+   → Tamaño: 41.70 KB
+
+📄 public\js\main.js
+   → Archivo del proyecto
+   → Tamaño: 13.17 KB
+
+📄 public\js\motivational-quotes.js
+   → Archivo del proyecto
+   → Tamaño: 83.22 KB
+
+📄 public\js\nebula.js
+   → Archivo del proyecto
+   → Tamaño: 29.02 KB
+
+📄 public\js\projects.js
+   → Archivo del proyecto
+   → Tamaño: 48.77 KB
+
+📄 public\js\quotes.js
+   → Archivo del proyecto
+   → Tamaño: 23.99 KB
+
+📄 public\js\reminders.js
+   → Archivo del proyecto
+   → Tamaño: 11.00 KB
+
+📄 public\js\sales.js
+   → Archivo del proyecto
+   → Tamaño: 24.77 KB
+
+📄 public\js\services.js
+   → Archivo del proyecto
+   → Tamaño: 10.56 KB
+
+📄 public\js\settings.js
+   → Archivo del proyecto
+   → Tamaño: 20.15 KB
+
+📄 public\js\tasks.js
+   → Archivo del proyecto
+   → Tamaño: 43.87 KB
+
+📄 public\js\team.js
+   → Archivo del proyecto
+   → Tamaño: 38.64 KB
+
+📄 public\uploads\fa88b6b7-7a3c-44df-a975-d21c00236cad.png
+   → Archivo del proyecto
+   → Tamaño: 4038.20 KB
+
+📄 README.md
+   → Documentación del proyecto
+   → Tamaño: 3.25 KB
+
+📄 server\db.js
+   → Parte de: Backend del sistema - Node.js/Express
+   → Tamaño: 14.75 KB
+
+📄 server\index.js
+   → Parte de: Backend del sistema - Node.js/Express
+   → Tamaño: 2.19 KB
+
+📄 server\routes\clientes-archivos.routes.js
+   → Archivo del proyecto
+   → Tamaño: 1.80 KB
+
+📄 server\routes\clientes-notas.routes.js
+   → Archivo del proyecto
+   → Tamaño: 2.02 KB
+
+📄 server\routes\clientes.routes.js
+   → Archivo del proyecto
+   → Tamaño: 2.41 KB
+
+📄 server\routes\community.routes.js
+   → Archivo del proyecto
+   → Tamaño: 1.02 KB
+
+📄 server\routes\config.routes.js
+   → Archivo del proyecto
+   → Tamaño: 1.68 KB
+
+📄 server\routes\cotizaciones.routes.js
+   → Archivo del proyecto
+   → Tamaño: 4.60 KB
+
+📄 server\routes\equipo.routes.js
+   → Archivo del proyecto
+   → Tamaño: 2.50 KB
+
+📄 server\routes\finanzas.routes.js
+   → Archivo del proyecto
+   → Tamaño: 3.34 KB
+
+📄 server\routes\leads-advanced.routes.js
+   → Archivo del proyecto
+   → Tamaño: 2.87 KB
+
+📄 server\routes\leads.routes.js
+   → Archivo del proyecto
+   → Tamaño: 4.33 KB
+
+📄 server\routes\nebula.js
+   → Archivo del proyecto
+   → Tamaño: 12.86 KB
+
+📄 server\routes\pagos.routes.js
+   → Archivo del proyecto
+   → Tamaño: 1.34 KB
+
+📄 server\routes\proyectos-fases.routes.js
+   → Archivo del proyecto
+   → Tamaño: 2.46 KB
+
+📄 server\routes\proyectos-gastos.routes.js
+   → Archivo del proyecto
+   → Tamaño: 2.11 KB
+
+📄 server\routes\proyectos.routes.js
+   → Archivo del proyecto
+   → Tamaño: 5.15 KB
+
+📄 server\routes\recordatorios.routes.js
+   → Archivo del proyecto
+   → Tamaño: 2.81 KB
+
+📄 server\routes\servicios.routes.js
+   → Archivo del proyecto
+   → Tamaño: 1.71 KB
+
+📄 server\routes\tareas-archivos.routes.js
+   → Archivo del proyecto
+   → Tamaño: 1.63 KB
+
+📄 server\routes\tareas-dependencias.routes.js
+   → Archivo del proyecto
+   → Tamaño: 1.59 KB
+
+📄 server\routes\tareas.routes.js
+   → Archivo del proyecto
+   → Tamaño: 1.74 KB
+
+📄 server\routes\ventas.routes.js
+   → Archivo del proyecto
+   → Tamaño: 5.34 KB
+
+📄 server\seed.js
+   → Parte de: Backend del sistema - Node.js/Express
+   → Tamaño: 15.29 KB
+
+📄 server\services\rate-limiter.js
+   → Archivo del proyecto
+   → Tamaño: 5.61 KB
+
+📄 server\services\scraper.js
+   → Archivo del proyecto
+   → Tamaño: 27.70 KB
+
+📄 server\upload.js
+   → Parte de: Backend del sistema - Node.js/Express
+   → Tamaño: 1.20 KB
+
+📄 server\utils\init-nebula-db.js
+   → Archivo del proyecto
+   → Tamaño: 2.09 KB
+
+📄 test-nebula-flow.js
+   → Archivo del proyecto
+   → Tamaño: 3.86 KB
+
+📄 test-scraper.js
+   → Archivo del proyecto
+   → Tamaño: 1.82 KB
